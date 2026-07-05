@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- CA1707: underscore naming is the xUnit convention for test methods -->
+    <!-- CA1812: private test helper types are never externally visible -->
+    <NoWarn>$(NoWarn);CA1707;CA1812</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

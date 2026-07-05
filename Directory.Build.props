@@ -33,6 +33,9 @@
     <!-- Ativa todas as regras de análise do .NET -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>All</AnalysisMode>
+    <!-- CA1515: app types don't need to be internal (WPF requires public partial classes) -->
+    <!-- CA1852: sealed suggestion for private nested records — style preference -->
+    <NoWarn>$(NoWarn);CA1515;CA1852</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Label="Output">
