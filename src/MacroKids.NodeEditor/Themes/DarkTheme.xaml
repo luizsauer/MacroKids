@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Core Palette Colors -->
+  <Color x:Key="ColorPrimary">#1E4FD8</Color>
+  <Color x:Key="ColorPrimaryDark">#1D4ED8</Color>
+  <Color x:Key="ColorSecondary">#252538</Color>
+  <Color x:Key="ColorBackground">#1E1E2E</Color>
+  <Color x:Key="ColorSurface">#252538</Color>
+  <Color x:Key="ColorSurfaceVariant">#2D2D44</Color>
+  
+  <!-- Category Colors -->
+  <Color x:Key="ColorEvents">#EC4899</Color>
+  <Color x:Key="ColorKeyboard">#3B82F6</Color>
+  <Color x:Key="ColorMouse">#22C55E</Color>
+  <Color x:Key="ColorGamepad">#F97316</Color>
+  <Color x:Key="ColorVariables">#8B5CF6</Color>
+  <Color x:Key="ColorLogic">#0EA5E9</Color>
+  <Color x:Key="ColorLoops">#EAB308</Color>
+  <Color x:Key="ColorImages">#6366F1</Color>
+  <Color x:Key="ColorOcr">#14B8A6</Color>
+  <Color x:Key="ColorAi">#A855F7</Color>
+  
+  <!-- Status Colors -->
+  <Color x:Key="ColorSuccess">#22C55E</Color>
+  <Color x:Key="ColorWarning">#EAB308</Color>
+  <Color x:Key="ColorDanger">#EF4444</Color>
+
+  <!-- Solid Brushes -->
+  <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}" />
+  <SolidColorBrush x:Key="BrushPrimaryDark" Color="{StaticResource ColorPrimaryDark}" />
+  <SolidColorBrush x:Key="BrushSecondary" Color="{StaticResource ColorSecondary}" />
+  <SolidColorBrush x:Key="BrushBackground" Color="{StaticResource ColorBackground}" />
+  <SolidColorBrush x:Key="BrushSurface" Color="{StaticResource ColorSurface}" />
+  <SolidColorBrush x:Key="BrushSurfaceVariant" Color="{StaticResource ColorSurfaceVariant}" />
+  
+  <!-- Category Brushes -->
+  <SolidColorBrush x:Key="BrushEvents" Color="{StaticResource ColorEvents}" />
+  <SolidColorBrush x:Key="BrushKeyboard" Color="{StaticResource ColorKeyboard}" />
+  <SolidColorBrush x:Key="BrushMouse" Color="{StaticResource ColorMouse}" />
+  <SolidColorBrush x:Key="BrushGamepad" Color="{StaticResource ColorGamepad}" />
+  <SolidColorBrush x:Key="BrushVariables" Color="{StaticResource ColorVariables}" />
+  <SolidColorBrush x:Key="BrushLogic" Color="{StaticResource ColorLogic}" />
+  <SolidColorBrush x:Key="BrushLoops" Color="{StaticResource ColorLoops}" />
+  <SolidColorBrush x:Key="BrushImages" Color="{StaticResource ColorImages}" />
+  <SolidColorBrush x:Key="BrushOcr" Color="{StaticResource ColorOcr}" />
+  <SolidColorBrush x:Key="BrushAi" Color="{StaticResource ColorAi}" />
+
+  <!-- Status Brushes -->
+  <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}" />
+  <SolidColorBrush x:Key="BrushWarning" Color="{StaticResource ColorWarning}" />
+  <SolidColorBrush x:Key="BrushDanger" Color="{StaticResource ColorDanger}" />
+
+  <!-- Text Brushes -->
+  <SolidColorBrush x:Key="BrushTextPrimary" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="BrushTextSecondary" Color="#8F9CAE" />
+  <SolidColorBrush x:Key="BrushTextMuted" Color="#5A6E85" />
+
+</ResourceDictionary>

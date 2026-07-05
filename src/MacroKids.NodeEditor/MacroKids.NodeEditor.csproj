@@ -4,11 +4,24 @@
     <ProjectReference Include="..\MacroKids.Core\MacroKids.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Page Remove="Themes\ControlStyles.xaml" />
+    <Page Remove="Themes\DarkTheme.xaml" />
+    <Page Remove="Controls\NodeEditorControl.xaml" />
+    <Page Include="Themes\ControlStyles.xaml" SubType="Designer" Generator="MSBuild:Compile" />
+    <Page Include="Themes\DarkTheme.xaml" SubType="Designer" Generator="MSBuild:Compile" />
+    <Page Include="Controls\NodeEditorControl.xaml" SubType="Designer" Generator="MSBuild:Compile" />
+  </ItemGroup>
 
 </Project>

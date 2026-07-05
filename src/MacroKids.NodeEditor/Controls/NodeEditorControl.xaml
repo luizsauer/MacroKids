@@ -1,0 +1,97 @@
+<UserControl x:Class="MacroKids.NodeEditor.Controls.NodeEditorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:MacroKids.NodeEditor.Controls"
+             xmlns:vm="clr-namespace:MacroKids.NodeEditor.ViewModels">
+  <Grid>
+    <!-- We put the NodeCanvas inside a ScrollViewer or just directly since we do custom panning -->
+    <local:NodeCanvas x:Name="EditorCanvas" 
+                      Zoom="{Binding Zoom}"
+                      OffsetX="{Binding OffsetX}"
+                      OffsetY="{Binding OffsetY}">
+      <ItemsControl ItemsSource="{Binding Nodes}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <Canvas />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemContainerStyle>
+          <Style TargetType="ContentPresenter">
+            <Setter Property="Canvas.Left" Value="{Binding X}" />
+            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+          </Style>
+        </ItemsControl.ItemContainerStyle>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type vm:NodeViewModel}">
+            <Border BorderThickness="2" CornerRadius="8" Background="#252538" Width="180" Height="Auto" Margin="5">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="BorderBrush" Value="#2D2D44" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                      <Setter Property="BorderBrush" Value="#3B82F6" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsExecuting}" Value="True">
+                      <Setter Property="BorderBrush" Value="#22C55E" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                      <Setter Property="BorderBrush" Value="#EF4444" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Header -->
+                <Border Grid.Row="0" Background="#2D2D44" CornerRadius="6,6,0,0" Padding="8,6">
+                  <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontWeight="Bold"/>
+                </Border>
+                
+                <!-- Content / Pins -->
+                <StackPanel Grid.Row="1" Margin="8">
+                  <TextBlock Text="{Binding Metadata.Description}" TextWrapping="Wrap" FontSize="11" Foreground="#8F9CAE" Margin="0,0,0,10"/>
+                  
+                  <!-- Inputs -->
+                  <ItemsControl ItemsSource="{Binding Metadata.Inputs}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,2">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                          </Grid.ColumnDefinitions>
+                          <ContentControl Style="{StaticResource PinDotStyle}" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                          <TextBlock Text="{Binding Label}" Foreground="#FFFFFF" Grid.Column="1" VerticalAlignment="Center" FontSize="11"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <!-- Outputs -->
+                  <ItemsControl ItemsSource="{Binding Metadata.Outputs}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,2">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="{Binding Label}" Foreground="#FFFFFF" Grid.Column="0" TextAlignment="Right" VerticalAlignment="Center" FontSize="11" Margin="0,0,5,0"/>
+                          <ContentControl Style="{StaticResource PinDotStyle}" Grid.Column="1" VerticalAlignment="Center"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </local:NodeCanvas>
+  </Grid>
+</UserControl>
