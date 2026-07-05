@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Assets/MacroKids-Logo.png" alt="MacroKids" width="480"/>
+<img src="Assets/MacroKids-Logo-com-fundo.png" alt="MacroKids" width="480"/>
 
 ### Create. Automate. Imagine.
 
