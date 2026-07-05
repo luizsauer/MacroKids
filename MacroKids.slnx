@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MacroKids.Core/MacroKids.Core.csproj" />
+    <Project Path="src/MacroKids.NodeEditor/MacroKids.NodeEditor.csproj" />
+    <Project Path="src/MacroKids.Nodes/MacroKids.Nodes.csproj" />
+    <Project Path="src/MacroKids.Plugins/MacroKids.Plugins.csproj" />
+    <Project Path="src/MacroKids.Recorder/MacroKids.Recorder.csproj" />
+    <Project Path="src/MacroKids.Runtime/MacroKids.Runtime.csproj" />
+    <Project Path="src/MacroKids.UI/MacroKids.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MacroKids.Core.Tests/MacroKids.Core.Tests.csproj" />
+    <Project Path="tests/MacroKids.Runtime.Tests/MacroKids.Runtime.Tests.csproj" />
+  </Folder>
+</Solution>

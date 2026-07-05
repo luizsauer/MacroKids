@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MacroKids.Core\MacroKids.Core.csproj" />
+    <ProjectReference Include="..\MacroKids.Runtime\MacroKids.Runtime.csproj" />
+    <ProjectReference Include="..\MacroKids.Nodes\MacroKids.Nodes.csproj" />
+    <ProjectReference Include="..\MacroKids.Recorder\MacroKids.Recorder.csproj" />
+    <ProjectReference Include="..\MacroKids.Plugins\MacroKids.Plugins.csproj" />
+    <ProjectReference Include="..\MacroKids.NodeEditor\MacroKids.NodeEditor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="NLog" Version="6.1.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+</Project>

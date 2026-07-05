@@ -1,0 +1,44 @@
+<Project>
+  <!--
+    Directory.Build.props
+    ─────────────────────
+    Fonte única da verdade para versão, configurações de build e analyzers.
+    Qualquer projeto na solution herda automaticamente tudo daqui.
+    Para mudar a versão: edite apenas <Version> abaixo.
+  -->
+
+  <PropertyGroup Label="Identity">
+    <Authors>Luiz Sauer</Authors>
+    <Company>MacroKids</Company>
+    <Product>MacroKids</Product>
+    <Copyright>Copyright © $([System.DateTime]::Now.Year) MacroKids</Copyright>
+    <RepositoryUrl>https://github.com/luizsauer/MacroKids</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Version">
+    <!-- SemVer: MAJOR.MINOR.PATCH — edite aqui para cada release -->
+    <Version>0.1.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build Quality">
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Manter false durante desenvolvimento; tornar true antes de cada release -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Ativa todas as regras de análise do .NET -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>All</AnalysisMode>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Output">
+    <Deterministic>true</Deterministic>
+    <!-- Pasta de saída consistente para todos os projetos -->
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+</Project>

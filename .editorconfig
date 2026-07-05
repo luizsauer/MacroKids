@@ -1,0 +1,44 @@
+root = true
+
+# Padrão para todos os arquivos
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+tab_width = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Arquivos XML, JSON, projetos e XAML (2 espaços para maior clareza visual)
+[*.{csproj,props,targets,json,xml,yml,yaml,xaml}]
+indent_size = 2
+tab_width = 2
+
+# Arquivos C#
+[*.cs]
+# Allman style: chaves sempre na nova linha
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+
+# Preferências .NET
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+dotnet_style_readonly_field = true:suggestion
+
+# Uso de var
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Expressões modernas
+csharp_style_expression_bodied_methods = true:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_prefer_simple_default_expression = true:suggestion
