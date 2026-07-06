@@ -10,13 +10,28 @@ public sealed partial class NodePinViewModel : ObservableObject
     public NodePin Pin { get; }
 
     public string Id        => Pin.Id;
-    public string Label     => Pin.Label;
+    public string Label     => MacroKids.Core.Translator.Get($"Pin_{_node.Metadata.TypeId}_{Pin.Id}_Label", Pin.Label);
     public PinDirection Direction => Pin.Direction;
     public bool IsFlowPin   => Pin.IsFlowPin;
 
     // ── Input type helpers ────────────────────────────────────────────────────
     public PinInputType InputType   => Pin.InputType;
-    public IReadOnlyList<string> Options => Pin.Options;
+    public IReadOnlyList<string> Options
+    {
+        get
+        {
+            if (Pin.InputType == PinInputType.Dropdown && (Pin.Id == "list" || Pin.Id == "name"))
+            {
+                var vars = MacroKids.Core.Translator.GetDeclaredVariables().ToList();
+                if (vars.Count == 0)
+                {
+                    return new List<string> { Pin.DefaultValue?.ToString() ?? "myVar" };
+                }
+                return vars;
+            }
+            return Pin.Options;
+        }
+    }
 
     public bool IsTextInput  => Pin.InputType == PinInputType.Text;
     public bool IsDropdown   => Pin.InputType == PinInputType.Dropdown;
@@ -27,6 +42,7 @@ public sealed partial class NodePinViewModel : ObservableObject
         _node = node;
         Pin = pin;
         _node.PropertyChanged += Node_PropertyChanged;
+        MacroKids.Core.Translator.TranslationChanged += Translator_TranslationChanged;
     }
 
     public object? Value
@@ -67,5 +83,10 @@ public sealed partial class NodePinViewModel : ObservableObject
             OnPropertyChanged(nameof(Value));
             OnPropertyChanged(nameof(ValueText));
         }
+    }
+
+    private void Translator_TranslationChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(Label));
     }
 }

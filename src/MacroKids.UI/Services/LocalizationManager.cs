@@ -46,6 +46,7 @@ public sealed partial class LocalizationManager : ObservableObject
                     _translations = dict;
                     CurrentCulture = targetCulture;
                     OnPropertyChanged(nameof(Translations));
+                    MacroKids.Core.Translator.RaiseTranslationChanged();
                 }
             }
             catch

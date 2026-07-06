@@ -14,6 +14,14 @@ public partial class App : Application
 
     public App()
     {
+        // Configura tradutor estático para evitar circular dependencies
+        MacroKids.Core.Translator.Translate = (key, def) =>
+        {
+            if (MacroKids.UI.Services.LocalizationManager.Instance.Translations.TryGetValue(key, out var val))
+                return val;
+            return def;
+        };
+
         // Capture Win32 thread exceptions
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {

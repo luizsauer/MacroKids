@@ -72,7 +72,7 @@ public static class ComboKeyMetadata
         NodeVersion = new Version(1, 0, 0),
         Pins = [
             new NodePin { Id = "in",    Label = "In",    Direction = PinDirection.Input,  DataType = typeof(bool) },
-            new NodePin { Id = "combo", Label = "Combo", Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "Ctrl+C" },
+            new NodePin { Id = "combo", Label = "Combo", Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "Ctrl+C", InputType = PinInputType.KeyCapture },
             new NodePin { Id = "done",  Label = "Done",  Direction = PinDirection.Output, DataType = typeof(bool) }
         ]
     };

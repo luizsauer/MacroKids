@@ -254,12 +254,18 @@ public sealed class FlowExecutor
 
         var resolvedInputs = ResolveInputs(node, document, outputCache);
         int times = 5;
-        if (resolvedInputs.TryGetValue("times", out var tVal) && tVal is int rt)
-            times = rt;
-        else if (node.PinValues.TryGetValue("times", out var st) && st is int stInt)
-            times = stInt;
-        else if (resolvedInputs.TryGetValue("times", out var tValObj) && tValObj != null)
-            int.TryParse(tValObj.ToString(), out times);
+        object? rawTimes = null;
+        if (resolvedInputs.TryGetValue("times", out var tVal))
+            rawTimes = tVal;
+        else if (node.PinValues.TryGetValue("times", out var st))
+            rawTimes = st;
+
+        if (rawTimes != null)
+        {
+            if (rawTimes is int iVal) times = iVal;
+            else if (rawTimes is double dVal) times = (int)dVal;
+            else int.TryParse(rawTimes.ToString(), out times);
+        }
 
         context.Log($"Iniciando loop de repetição: {times} vezes");
 

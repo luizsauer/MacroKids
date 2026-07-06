@@ -155,8 +155,16 @@
 
                           <!-- ComboBox Dropdown -->
                           <ComboBox Width="85" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding Options}" SelectedItem="{Binding Value, Mode=TwoWay}" Visibility="{Binding IsDropdown, Converter={StaticResource BoolToVisibility}}">
-                            <ComboBox.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></ComboBox.Resources>
-                          </ComboBox>
+                            <ComboBox.Resources>
+                              <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                               </Style>
+                               <Style TargetType="ComboBoxItem">
+                                 <Setter Property="Background" Value="#0F172A"/>
+                                 <Setter Property="Foreground" Value="White"/>
+                               </Style>
+                             </ComboBox.Resources>
+                           </ComboBox>
 
                           <!-- TextBox especial para Captura de Teclas -->
                           <TextBox Width="85" Height="22" Background="#1E1B4B" Foreground="#38BDF8" BorderBrush="#38BDF8" BorderThickness="1" Padding="4,2" FontSize="10" FontFamily="Nunito" FontWeight="Bold" VerticalContentAlignment="Center" VerticalAlignment="Center" IsReadOnly="True" Cursor="Hand" Text="{Binding ValueText, Mode=OneWay}" ToolTip="Clique aqui e pressione qualquer tecla no teclado" PreviewKeyDown="KeyCaptureTextBox_PreviewKeyDown" Visibility="{Binding IsKeyCapture, Converter={StaticResource BoolToVisibility}}">

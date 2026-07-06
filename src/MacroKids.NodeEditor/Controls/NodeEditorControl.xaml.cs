@@ -268,6 +268,7 @@ public partial class NodeEditorControl : UserControl
         if (sender is TextBox textBox && textBox.DataContext is NodePinViewModel pinVm)
         {
             e.Handled = true;
+
             string keyName = e.Key.ToString();
             if (e.Key == Key.System)
                 keyName = e.SystemKey.ToString();
@@ -285,8 +286,34 @@ public partial class NodeEditorControl : UserControl
                 _ => keyName
             };
 
-            pinVm.Value = keyName;
-            Keyboard.ClearFocus();
+            // Se for pin de combinação de teclas (combo)
+            if (pinVm.Id == "combo")
+            {
+                string modifiers = "";
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) modifiers += "Ctrl+";
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) modifiers += "Shift+";
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)) modifiers += "Alt+";
+
+                // Se o usuário só pressionou um modificador isolado
+                if (keyName == "Ctrl" || keyName == "Shift" || keyName == "Alt" || keyName == "None")
+                {
+                    if (modifiers.EndsWith('+'))
+                        pinVm.Value = modifiers.Substring(0, modifiers.Length - 1);
+                    else
+                        pinVm.Value = keyName;
+                }
+                else
+                {
+                    pinVm.Value = modifiers + keyName;
+                    Keyboard.ClearFocus(); // Desfoca ao capturar a combinação completa
+                }
+            }
+            else
+            {
+                // Captura simples de tecla única
+                pinVm.Value = keyName;
+                Keyboard.ClearFocus();
+            }
         }
     }
 }

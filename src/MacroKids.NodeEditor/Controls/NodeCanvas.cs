@@ -69,8 +69,7 @@ public class NodeCanvas : Canvas
         Focusable = true;
         ClipToBounds = false; // Parent Grid handles clipping — canvas is logically infinite.
         SetResourceReference(BackgroundProperty, "BrushBackground");
-        Width = 10000;
-        Height = 10000;
+
     }
 
     // ── Infinite-canvas layout overrides ─────────────────────────────────────

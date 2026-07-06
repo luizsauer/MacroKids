@@ -35,11 +35,19 @@ public class WaitExecutor : INodeExecutor
         IReadOnlyDictionary<string, object?> resolvedInputs)
     {
         int ms = 1000;
+        object? rawMs = null;
 
-        if (resolvedInputs != null && resolvedInputs.TryGetValue("ms", out var msVal) && msVal is int rms)
-            ms = rms;
-        else if (node != null && node.PinValues.TryGetValue("ms", out var sms) && sms is int smsInt)
-            ms = smsInt;
+        if (resolvedInputs != null && resolvedInputs.TryGetValue("ms", out var msVal))
+            rawMs = msVal;
+        else if (node != null && node.PinValues.TryGetValue("ms", out var sms))
+            rawMs = sms;
+
+        if (rawMs != null)
+        {
+            if (rawMs is int iVal) ms = iVal;
+            else if (rawMs is double dVal) ms = (int)dVal;
+            else int.TryParse(rawMs.ToString(), out ms);
+        }
 
         if (context != null)
         {

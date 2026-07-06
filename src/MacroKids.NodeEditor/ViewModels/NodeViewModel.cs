@@ -45,6 +45,9 @@ public sealed partial class NodeViewModel : ObservableObject
     /// <summary>Only execution/flow output pins (Id="done", DataType=bool). Shown as side connectors.</summary>
     public ObservableCollection<NodePinViewModel> FlowOutputPins { get; } = [];
 
+    public string DisplayName => MacroKids.Core.Translator.Get($"Node_{Metadata.TypeId}_Name", Metadata.Name);
+    public string DisplayDescription => MacroKids.Core.Translator.Get($"Node_{Metadata.TypeId}_Desc", Metadata.Description);
+
     // Helper property to enable direct two-way binding: {Binding Parameters[ms]}
     public object? this[string pinId]
     {
@@ -58,6 +61,8 @@ public sealed partial class NodeViewModel : ObservableObject
 
     public NodeViewModel(FlowNode node, NodeMetadata metadata)
     {
+        MacroKids.Core.Translator.TranslationChanged += Translator_TranslationChanged;
+
         InstanceId = node.InstanceId;
         Metadata   = metadata;
         X          = node.X;
@@ -129,5 +134,11 @@ public sealed partial class NodeViewModel : ObservableObject
     {
         // Right flow pin center: X+218 (pin projects slightly outside right border at X+220)
         return new Point(X + 218, NodeCenterY);
+    }
+
+    private void Translator_TranslationChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(DisplayName));
+        OnPropertyChanged(nameof(DisplayDescription));
     }
 }

@@ -53,7 +53,7 @@ public static class ForEachMetadata
         NodeVersion = new Version(1, 0, 0),
         Pins = [
             new NodePin { Id = "in",   Label = "In",   Direction = PinDirection.Input,  DataType = typeof(bool) },
-            new NodePin { Id = "list", Label = "List", Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "myList" },
+            new NodePin { Id = "list", Label = "List", Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "myList", InputType = PinInputType.Dropdown },
             new NodePin { Id = "item", Label = "Item", Direction = PinDirection.Output, DataType = typeof(bool) },
             new NodePin { Id = "done", Label = "Done", Direction = PinDirection.Output, DataType = typeof(bool) }
         ]

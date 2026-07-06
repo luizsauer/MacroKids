@@ -47,6 +47,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public MainWindowViewModel()
     {
+        MacroKids.Core.Translator.GetDeclaredVariables = () =>
+        {
+            if (CanvasViewModel == null) return Enumerable.Empty<string>();
+            return CanvasViewModel.Nodes
+                .Where(n => n.Metadata.TypeId == "variables.set")
+                .Select(n => n["name"]?.ToString())
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .OfType<string>();
+        };
+
         var registry = new NodeRegistry();
         // Mouse
         registry.Register(MoveMouseMetadata.Instance,   new MoveMouseExecutor());
