@@ -36,7 +36,7 @@
                     <!-- Custom style with transparent over-layer for easier double click / selection -->
                     <Grid Cursor="Hand">
                       <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
-                                      Stroke="Transparent" StrokeThickness="14"
+                                      Stroke="#01FFFFFF" StrokeThickness="14"
                                       MouseLeftButtonDown="Connection_MouseLeftButtonDown" />
                       
                       <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
@@ -139,7 +139,7 @@
                 <!-- Central Content Area -->
                 <StackPanel Grid.Column="1" Margin="4,2">
                   <!-- Block Title -->
-                  <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,6"/>
+                  <TextBlock Text="{Binding DisplayName}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,6"/>
                   
                   <!-- Data Parameter Inputs (non-flow pins with inline textbox) -->
                   <ItemsControl ItemsSource="{Binding DataInputPins}">

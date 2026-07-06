@@ -194,15 +194,40 @@ public partial class NodeEditorControl : UserControl
 
     private void Pin_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement element && element.DataContext is NodePinViewModel pinVm && pinVm.Direction == PinDirection.Output)
+        if (sender is FrameworkElement element && element.DataContext is NodePinViewModel pinVm && DataContext is NodeCanvasViewModel canvasVm)
         {
-            var nodeVm = FindParentDataContext<NodeViewModel>(element);
-            if (nodeVm != null && DataContext is NodeCanvasViewModel canvasVm)
+            if (e.ClickCount == 2)
             {
-                _pendingSourceNode = nodeVm;
-                _pendingSourcePin = pinVm.Pin;
-                canvasVm.BeginConnectionPreview(nodeVm, pinVm.Id, e.GetPosition(EditorCanvas));
-                e.Handled = true;
+                var targetId = pinVm.Direction == PinDirection.Input ? pinVm.Id : null;
+                var sourceId = pinVm.Direction == PinDirection.Output ? pinVm.Id : null;
+                var nodeVm = FindParentDataContext<NodeViewModel>(element);
+
+                if (nodeVm != null)
+                {
+                    var connsToRemove = canvasVm.Connections
+                        .Where(c => (c.SourceNodeId == nodeVm.InstanceId && c.SourcePinId == sourceId) ||
+                                    (c.TargetNodeId == nodeVm.InstanceId && c.TargetPinId == targetId))
+                        .ToList();
+
+                    foreach (var conn in connsToRemove)
+                    {
+                        canvasVm.DisconnectConnection(conn.ConnectionId);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            if (pinVm.Direction == PinDirection.Output)
+            {
+                var nodeVm = FindParentDataContext<NodeViewModel>(element);
+                if (nodeVm != null)
+                {
+                    _pendingSourceNode = nodeVm;
+                    _pendingSourcePin = pinVm.Pin;
+                    canvasVm.BeginConnectionPreview(nodeVm, pinVm.Id, e.GetPosition(EditorCanvas));
+                    e.Handled = true;
+                }
             }
         }
     }

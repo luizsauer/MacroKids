@@ -33,6 +33,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private bool _isDarkTheme = true;
     [ObservableProperty] private LanguageOption? _selectedLanguage;
     [ObservableProperty] private bool _isLanguageMenuOpen;
+    [ObservableProperty] private bool _isLogExpanded;
+    public ObservableCollection<string> ExecutionLogs { get; } = [];
 
     public ObservableCollection<ProjectPageViewModel> Pages { get; } = [];
     public ObservableCollection<NodeMetadata> AvailableNodes { get; } = [];
@@ -70,10 +72,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(TypeTextMetadata.Instance,  new TypeTextExecutor());
         registry.Register(HoldKeyMetadata.Instance,   new HoldKeyExecutor());
         registry.Register(ComboKeyMetadata.Instance,  new ComboKeyExecutor());
-        // Flow / Loops
         registry.Register(WaitMetadata.Instance,       new WaitExecutor());
         registry.Register(RepeatLoopMetadata.Instance, new RepeatLoopExecutor());
         registry.Register(ForEachMetadata.Instance,    new ForEachExecutor());
+        registry.Register(ForLoopMetadata.Instance,    new ForLoopExecutor());
+        registry.Register(WhileLoopMetadata.Instance,  new WhileLoopExecutor());
         // Logic
         registry.Register(IfConditionMetadata.Instance, new IfConditionExecutor());
         // Variables
@@ -144,6 +147,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         OnPropertyChanged(nameof(CanvasViewModel));
         OnPropertyChanged(nameof(SelectedNode));
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        DuplicateSelectedCommand.NotifyCanExecuteChanged();
         UpdateWindowTitle();
     }
 
@@ -153,6 +158,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(SelectedNode));
             OnPropertyChanged(nameof(CanPickMoveMouseCoordinates));
+            DeleteSelectedCommand.NotifyCanExecuteChanged();
+            DuplicateSelectedCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -443,8 +450,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
         CanvasViewModel.ToggleGridCommand.Execute(null);
     }
 
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void DeleteSelected()
+    {
+        CanvasViewModel.DeleteSelectedCommand.Execute(null);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void DuplicateSelected()
+    {
+        CanvasViewModel.DuplicateSelectedCommand.Execute(null);
+    }
+
+    private bool HasSelection => SelectedNode is not null;
+
     private async Task ExecuteFlowAsync(int stepDelayMs)
     {
+        // Reset node visual execution states
+        foreach (var n in CanvasViewModel.Nodes)
+        {
+            n.IsExecuting = false;
+            n.HasError = false;
+        }
+
+        ExecutionLogs.Clear();
+        IsLogExpanded = true;
+
         try
         {
             var document = CanvasViewModel.ToFlowDocument();
@@ -459,6 +490,46 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusExecutingNode", "Executing block: {0}..."), e.TypeId);
+                    var node = CanvasViewModel.Nodes.FirstOrDefault(n => n.InstanceId == e.NodeInstanceId);
+                    if (node != null)
+                    {
+                        node.IsExecuting = true;
+                        node.HasError = false;
+                    }
+                });
+            });
+
+            eventBus.Subscribe<MacroKids.Core.Events.NodeCompletedEvent>(e =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var node = CanvasViewModel.Nodes.FirstOrDefault(n => n.InstanceId == e.NodeInstanceId);
+                    if (node != null)
+                    {
+                        node.IsExecuting = false;
+                    }
+                });
+            });
+
+            eventBus.Subscribe<MacroKids.Core.Events.NodeErrorEvent>(e =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var node = CanvasViewModel.Nodes.FirstOrDefault(n => n.InstanceId == e.NodeInstanceId);
+                    if (node != null)
+                    {
+                        node.IsExecuting = false;
+                        node.HasError = true;
+                    }
+                });
+            });
+
+            eventBus.Subscribe<MacroKids.Core.Events.LogMessageEvent>(e =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var timestamp = e.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
+                    ExecutionLogs.Add($"[{timestamp}] [{e.Level}] {e.Message}");
                 });
             });
 
@@ -476,6 +547,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         finally
         {
             _activeExecutor = null;
+            foreach (var n in CanvasViewModel.Nodes)
+            {
+                n.IsExecuting = false;
+            }
         }
     }
 

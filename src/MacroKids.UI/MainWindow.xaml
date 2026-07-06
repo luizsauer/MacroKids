@@ -460,9 +460,41 @@
                 </ListBox>
             </Border>
 
-            <editor:NodeEditorControl Grid.Column="2"
-                                      x:Name="EditorView"
-                                      DataContext="{Binding CanvasViewModel}" />
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <editor:NodeEditorControl Grid.Row="0"
+                                          x:Name="EditorView"
+                                          ClipToBounds="True"
+                                          DataContext="{Binding CanvasViewModel}" />
+
+                <Expander Grid.Row="1" 
+                          Header="Console de Execução (Logs)" 
+                          Background="{DynamicResource BrushSurface}" 
+                          Foreground="{DynamicResource BrushTextPrimary}" 
+                          BorderBrush="{DynamicResource BrushSurfaceVariant}" 
+                          BorderThickness="0,1,0,0"
+                          ExpandDirection="Up" 
+                          IsExpanded="{Binding IsLogExpanded, Mode=TwoWay}"
+                          FontFamily="Nunito"
+                          FontSize="11"
+                          FontWeight="Bold">
+                    <Border Background="#090D16" Height="140" Padding="10">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ExecutionLogs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Foreground="#10B981" FontSize="11" FontFamily="Consolas" Margin="0,2" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </Expander>
+            </Grid>
 
             <Border Grid.Column="3" Background="{DynamicResource BrushSurfaceVariant}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="1,0,0,0" Padding="14">
                 <Grid>
@@ -499,8 +531,8 @@
                             <ContentControl.ContentTemplate>
                                 <DataTemplate>
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Metadata.Name}" Foreground="{DynamicResource BrushTextPrimary}" FontSize="18" FontWeight="Bold" FontFamily="Nunito" />
-                                        <TextBlock Text="{Binding Metadata.Description}" Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,4,0,12" FontFamily="Nunito" />
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource BrushTextPrimary}" FontSize="18" FontWeight="Bold" FontFamily="Nunito" />
+                                        <TextBlock Text="{Binding DisplayDescription}" Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,4,0,12" FontFamily="Nunito" />
                                         <TextBlock Text="{Binding Metadata.Category}" Foreground="{DynamicResource BrushPrimary}" FontSize="11" Margin="0,0,0,12" FontFamily="Nunito" />
 
                                         <CheckBox Content="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorDisabled]}"

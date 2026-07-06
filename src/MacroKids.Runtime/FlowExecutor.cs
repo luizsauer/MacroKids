@@ -135,6 +135,10 @@ public sealed class FlowExecutor
             return;
         }
 
+        List<FlowConnection> flowConns = [];
+        List<string> activeOutputs = [];
+        NodeExecutionResult? result = null;
+
         try
         {
             // Wait if paused (Step mode releases the semaphore once)
@@ -152,6 +156,16 @@ public sealed class FlowExecutor
                 await ExecuteForEachLoopAsync(node, context, outputCache, document);
                 return;
             }
+            if (node.TypeId == "logic.for")
+            {
+                await ExecuteForLoopAsync(node, context, outputCache, document);
+                return;
+            }
+            if (node.TypeId == "logic.while")
+            {
+                await ExecuteWhileLoopAsync(node, context, outputCache, document);
+                return;
+            }
 
             // ─── Standard Node Execution ───
             if (!_registry.TryGet(node.TypeId, out _, out var executor) || executor is null)
@@ -166,7 +180,6 @@ public sealed class FlowExecutor
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             var resolvedInputs = ResolveInputs(node, document, outputCache);
-            NodeExecutionResult result;
             try
             {
                 result = await executor.ExecuteAsync(node, context, resolvedInputs);
@@ -215,28 +228,30 @@ public sealed class FlowExecutor
                 await Task.Delay(StepDelayMs, _cts.Token);
 
             // Follow active flow output pins
-            var activeOutputs = result.OutputValues
+            activeOutputs = result.OutputValues
                 .Where(kv => kv.Value is bool b && b)
                 .Select(kv => kv.Key)
                 .ToList();
 
-            // Default done/true fallback if not explicitly returned but pin exists in connection
-            var flowConns = document.Connections.Where(c => c.SourceNodeId == node.InstanceId).ToList();
-            foreach (var conn in flowConns)
-            {
-                // If the pin is active in the result, or if it is the "done" pin and no explicit boolean was returned
-                bool isPinTriggered = activeOutputs.Contains(conn.SourcePinId) || 
-                                     (conn.SourcePinId == "done" && !result.OutputValues.ContainsKey("done"));
-
-                if (isPinTriggered)
-                {
-                    await ExecuteBranchAsync(conn.TargetNodeId, context, outputCache, document);
-                }
-            }
+            flowConns = document.Connections.Where(c => c.SourceNodeId == node.InstanceId).ToList();
         }
         finally
         {
             _currentlyExecutingNodes.Remove(nodeId);
+        }
+
+        // Execute downstream connections outside of the recursion prevention lock
+        foreach (var conn in flowConns)
+        {
+            // If the pin is active in the result, or if it is the "done" pin and no explicit boolean was returned
+            bool isPinTriggered = activeOutputs.Contains(conn.SourcePinId) || 
+                                 (conn.SourcePinId == "done" && result != null && !result.OutputValues.ContainsKey("done"));
+
+            if (isPinTriggered)
+            {
+                await Task.Yield(); // Avoid deep synchronous stack trace on long flows
+                await ExecuteBranchAsync(conn.TargetNodeId, context, outputCache, document);
+            }
         }
     }
 
@@ -359,6 +374,142 @@ public sealed class FlowExecutor
         }
     }
 
+    private async Task ExecuteForLoopAsync(
+        FlowNode node,
+        ExecutionContext context,
+        Dictionary<(Guid, string), object?> outputCache,
+        FlowDocument document)
+    {
+        _eventBus.Publish(new NodeStartedEvent(document.Id, node.InstanceId, node.TypeId));
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var resolvedInputs = ResolveInputs(node, document, outputCache);
+        
+        int start = 0;
+        int end = 10;
+        int step = 1;
+
+        if (resolvedInputs.TryGetValue("start", out var sVal))
+        {
+            if (sVal is int si) start = si;
+            else int.TryParse(sVal.ToString(), out start);
+        }
+        else if (node.PinValues.TryGetValue("start", out var sp))
+        {
+            if (sp is int si) start = si;
+            else int.TryParse(sp.ToString(), out start);
+        }
+
+        if (resolvedInputs.TryGetValue("end", out var eVal))
+        {
+            if (eVal is int ei) end = ei;
+            else int.TryParse(eVal.ToString(), out end);
+        }
+        else if (node.PinValues.TryGetValue("end", out var ep))
+        {
+            if (ep is int ei) end = ei;
+            else int.TryParse(ep.ToString(), out end);
+        }
+
+        if (resolvedInputs.TryGetValue("step", out var stVal))
+        {
+            if (stVal is int sti) step = sti;
+            else int.TryParse(stVal.ToString(), out step);
+        }
+        else if (node.PinValues.TryGetValue("step", out var stp))
+        {
+            if (stp is int sti) step = sti;
+            else int.TryParse(stp.ToString(), out step);
+        }
+
+        context.Log($"Iniciando For Loop: de {start} até {end} (passo {step})");
+
+        var loopConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "loop");
+
+        int index = start;
+        while ((step > 0 && index < end) || (step < 0 && index > end))
+        {
+            _cts!.Token.ThrowIfCancellationRequested();
+            context.Log($"For Loop - Índice: {index}");
+
+            outputCache[(node.InstanceId, "index")] = index;
+
+            if (loopConn != null)
+            {
+                await ExecuteBranchAsync(loopConn.TargetNodeId, context, outputCache, document);
+            }
+
+            index += step;
+            await Task.Delay(10, _cts.Token);
+        }
+
+        sw.Stop();
+        var outputs = new Dictionary<string, object?> { ["done"] = true };
+        _eventBus.Publish(new NodeCompletedEvent(document.Id, node.InstanceId, node.TypeId, sw.Elapsed, outputs));
+
+        var doneConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "done");
+        if (doneConn != null)
+        {
+            await ExecuteBranchAsync(doneConn.TargetNodeId, context, outputCache, document);
+        }
+    }
+
+    private async Task ExecuteWhileLoopAsync(
+        FlowNode node,
+        ExecutionContext context,
+        Dictionary<(Guid, string), object?> outputCache,
+        FlowDocument document)
+    {
+        _eventBus.Publish(new NodeStartedEvent(document.Id, node.InstanceId, node.TypeId));
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var resolvedInputs = ResolveInputs(node, document, outputCache);
+        string condition = "var < 10";
+
+        if (resolvedInputs.TryGetValue("condition", out var cVal) && cVal is string rc)
+            condition = rc;
+        else if (node.PinValues.TryGetValue("condition", out var sc) && sc is string scStr)
+            condition = scStr;
+
+        context.Log($"Iniciando While Loop com a condição: {condition}");
+
+        var loopConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "loop");
+
+        int iterations = 0;
+        const int maxSafeIterations = 10000;
+
+        while (EvaluateCondition(condition, context))
+        {
+            _cts!.Token.ThrowIfCancellationRequested();
+            iterations++;
+
+            if (iterations > maxSafeIterations)
+            {
+                context.Log("While Loop - Proteção de loop infinito ativada (máximo 10000 iterações)", LogLevel.Warning);
+                break;
+            }
+
+            context.Log($"While Loop - Iteração {iterations}");
+
+            if (loopConn != null)
+            {
+                await ExecuteBranchAsync(loopConn.TargetNodeId, context, outputCache, document);
+            }
+
+            await Task.Delay(10, _cts.Token);
+        }
+
+        sw.Stop();
+        var outputs = new Dictionary<string, object?> { ["done"] = true };
+        _eventBus.Publish(new NodeCompletedEvent(document.Id, node.InstanceId, node.TypeId, sw.Elapsed, outputs));
+
+        var doneConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "done");
+        if (doneConn != null)
+        {
+            await ExecuteBranchAsync(doneConn.TargetNodeId, context, outputCache, document);
+        }
+    }
+
     /// <summary>Stop execution immediately.</summary>
     public void Stop() => _cts?.Cancel();
 
@@ -403,5 +554,41 @@ public sealed class FlowExecutor
         }
 
         return resolved;
+    }
+
+    private static bool EvaluateCondition(string condition, ExecutionContext context)
+    {
+        try
+        {
+            var parts = condition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 3)
+            {
+                var varName = parts[0];
+                var op = parts[1];
+                var targetStr = parts[2];
+
+                if (context.TryGetVariable(varName, out var actualVal))
+                {
+                    double actualDouble = Convert.ToDouble(actualVal ?? 0);
+                    double targetDouble = Convert.ToDouble(targetStr);
+
+                    return op switch
+                    {
+                        ">" => actualDouble > targetDouble,
+                        ">=" => actualDouble >= targetDouble,
+                        "<" => actualDouble < targetDouble,
+                        "<=" => actualDouble <= targetDouble,
+                        "==" => actualDouble == targetDouble,
+                        "!=" => actualDouble != targetDouble,
+                        _ => false
+                    };
+                }
+            }
+            return !string.IsNullOrWhiteSpace(condition);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
