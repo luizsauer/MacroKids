@@ -7,6 +7,26 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.1.4-dev] - 2026-07-06
+
+### Added
+- `NodeCanvas`: dimensões de 50000×50000 para simular canvas infinito
+- `ConnectionLine`: overlay transparente de 14px para facilitar clique/seleção nas conexões
+- `NodeViewModel`: pin global de **Delay (ms)** em todos os nós (inline delay)
+- `FlowExecutor`: executa o inline delay do nó antes do `StepDelayMs`
+- Botão **Load Project** (📂) na toolbar do canvas
+- Chave `TooltipLoadProject` nas traduções (pt-BR, en, es)
+
+### Improved
+- `TypeTextNode`: migrado de `keybd_event` para `SendInput` com Unicode (suporta acentos e caracteres especiais)
+- `IfConditionExecutor`: avaliação real de condições (`var > 0`, `==`, `!=`, etc.)
+- `RepeatLoopExecutor`: execução real do loop com contagem configurável
+- `ForEachExecutor`: iteração real sobre lista de itens
+- `MouseScrollExecutor`: scroll real via `mouse_event` (cima/baixo, quantidade configurável)
+- `DoubleClickExecutor`: duplo clique real via `mouse_event`
+- `HoldKeyExecutor`: segurar tecla por X ms via `keybd_event`
+- `ComboKeyExecutor`: combinações de teclas reais (ex: Ctrl+C)
+
 ## [0.1.3-dev] - 2026-07-05
 
 ### Changed
