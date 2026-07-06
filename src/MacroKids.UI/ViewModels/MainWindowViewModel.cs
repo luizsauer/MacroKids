@@ -10,6 +10,7 @@ using MacroKids.Nodes.Flow;
 using MacroKids.Nodes.Keyboard;
 using MacroKids.Nodes.Mouse;
 using MacroKids.Runtime;
+using MacroKids.UI.Services;
 
 namespace MacroKids.UI.ViewModels;
 
@@ -92,6 +93,53 @@ public sealed partial class MainWindowViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(moduleName))
         {
             SelectedModule = moduleName;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleTheme()
+    {
+        // WPF Theme switching logic
+        var app = System.Windows.Application.Current;
+        if (app == null) return;
+
+        // Try to find the active dark theme dictionary
+        var darkTheme = app.Resources.MergedDictionaries
+            .FirstOrDefault(d => d.Source != null && d.Source.OriginalString.Contains("DarkTheme.xaml"));
+
+        if (darkTheme != null)
+        {
+            // Switch to Light Theme (or create a light colors dictionary override)
+            app.Resources.MergedDictionaries.Remove(darkTheme);
+            
+            // Inject a light overrides dictionary
+            var lightTheme = new System.Windows.ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml") // Fallback check
+            };
+            app.Resources.MergedDictionaries.Add(lightTheme);
+            
+            StatusMessage = "Tema alternado!";
+        }
+        else
+        {
+            // Restore Dark Theme
+            var dark = new System.Windows.ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml")
+            };
+            app.Resources.MergedDictionaries.Add(dark);
+            StatusMessage = "Tema Escuro Ativado!";
+        }
+    }
+
+    [RelayCommand]
+    private void ChangeLanguage(string cultureCode)
+    {
+        if (!string.IsNullOrWhiteSpace(cultureCode))
+        {
+            LocalizationManager.Instance.LoadCulture(cultureCode);
+            StatusMessage = $"Idioma alterado: {cultureCode}";
         }
     }
 

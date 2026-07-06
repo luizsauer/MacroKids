@@ -63,8 +63,26 @@
 
         <!-- Top Right controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+          <!-- Language Selector Dropdown -->
+          <ComboBox x:Name="LanguageCombo" Width="100" Height="28" Margin="0,0,15,0" Background="#1E293B" Foreground="White" BorderBrush="#334155" FontSize="11" FontFamily="Nunito" VerticalContentAlignment="Center" SelectedIndex="0">
+            <ComboBox.Resources>
+              <Style TargetType="Border">
+                <Setter Property="CornerRadius" Value="6"/>
+              </Style>
+            </ComboBox.Resources>
+            <ComboBoxItem Content="🇧🇷 pt-BR" Tag="pt-BR" Selected="LanguageCombo_Selected"/>
+            <ComboBoxItem Content="🇺🇸 en-US" Tag="en" Selected="LanguageCombo_Selected"/>
+            <ComboBoxItem Content="🇪🇸 es-ES" Tag="es" Selected="LanguageCombo_Selected"/>
+          </ComboBox>
+
           <!-- Light/Dark theme toggle button -->
-          <Button Content="🌗" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="16" Margin="0,0,15,0" VerticalAlignment="Center" ToolTip="Alternar Tema"/>
+          <Button Command="{Binding ToggleThemeCommand}" Content="🌙" Background="#1E293B" Foreground="White" BorderBrush="#334155" BorderThickness="1" Width="32" Height="32" Margin="0,0,15,0" FontSize="14" VerticalAlignment="Center" ToolTip="Alternar Tema">
+            <Button.Resources>
+              <Style TargetType="Border">
+                <Setter Property="CornerRadius" Value="16"/>
+              </Style>
+            </Button.Resources>
+          </Button>
           
           <Button Content="{Binding Translations[ButtonPublish], Source={x:Static services:LocalizationManager.Instance}}" Background="#2563EB" Foreground="White" FontWeight="Bold" Padding="16,6" BorderThickness="0" FontSize="12" FontFamily="Nunito">
             <Button.Resources>
