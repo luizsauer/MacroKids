@@ -29,7 +29,7 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
             <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
-                                  Stroke="#8B5CF6" StrokeThickness="3">
+                                  Stroke="{Binding StrokeBrush}" StrokeThickness="3">
               <local:ConnectionLine.Style>
                 <Style TargetType="local:ConnectionLine">
                   <Style.Triggers>
