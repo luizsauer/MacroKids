@@ -104,7 +104,7 @@ public class PressKeyExecutor : INodeExecutor
                     {
                         ki = new KEYBDINPUT
                         {
-                            wVk = 0,
+                            wVk = (ushort)virtualKey,
                             wScan = scanCode,
                             dwFlags = KEYEVENTF_SCANCODE,
                             time = 0,
@@ -125,7 +125,7 @@ public class PressKeyExecutor : INodeExecutor
                     {
                         ki = new KEYBDINPUT
                         {
-                            wVk = 0,
+                            wVk = (ushort)virtualKey,
                             wScan = scanCode,
                             dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
                             time = 0,

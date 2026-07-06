@@ -196,7 +196,7 @@ public class HoldKeyExecutor : INodeExecutor
         ctx.Log($"Segurando tecla(s) {key} por {ms}ms ({times} vez/vezes)...");
 
         var keyParts = key.Split(new[] { '+', ',' }, StringSplitOptions.RemoveEmptyEntries);
-        var scanCodes = new List<ushort>();
+        var keyData = new List<(ushort scanCode, ushort virtualKey)>();
 
         foreach (var kp in keyParts)
         {
@@ -204,11 +204,11 @@ public class HoldKeyExecutor : INodeExecutor
             if (vk != 0)
             {
                 ushort sc = (ushort)MapVirtualKey(vk, 0);
-                scanCodes.Add(sc);
+                keyData.Add((sc, vk));
             }
         }
 
-        if (scanCodes.Count > 0)
+        if (keyData.Count > 0)
         {
             for (int i = 0; i < times; i++)
             {
@@ -216,8 +216,8 @@ public class HoldKeyExecutor : INodeExecutor
                     await Task.Delay(100);
 
                 // Envia Down para todas simultaneamente
-                var inputsDown = new INPUT[scanCodes.Count];
-                for (int s = 0; s < scanCodes.Count; s++)
+                var inputsDown = new INPUT[keyData.Count];
+                for (int s = 0; s < keyData.Count; s++)
                 {
                     inputsDown[s] = new INPUT
                     {
@@ -226,8 +226,8 @@ public class HoldKeyExecutor : INodeExecutor
                         {
                             ki = new KEYBDINPUT
                             {
-                                wVk = 0,
-                                wScan = scanCodes[s],
+                                wVk = keyData[s].virtualKey,
+                                wScan = keyData[s].scanCode,
                                 dwFlags = KEYEVENTF_SCANCODE,
                                 time = 0,
                                 dwExtraInfo = IntPtr.Zero
@@ -240,9 +240,10 @@ public class HoldKeyExecutor : INodeExecutor
                 await Task.Delay(ms);
 
                 // Envia Up para todas em ordem reversa
-                var inputsUp = new INPUT[scanCodes.Count];
-                for (int s = 0; s < scanCodes.Count; s++)
+                var inputsUp = new INPUT[keyData.Count];
+                for (int s = 0; s < keyData.Count; s++)
                 {
+                    var data = keyData[keyData.Count - 1 - s];
                     inputsUp[s] = new INPUT
                     {
                         type = INPUT_KEYBOARD,
@@ -250,8 +251,8 @@ public class HoldKeyExecutor : INodeExecutor
                         {
                             ki = new KEYBDINPUT
                             {
-                                wVk = 0,
-                                wScan = scanCodes[scanCodes.Count - 1 - s],
+                                wVk = data.virtualKey,
+                                wScan = data.scanCode,
                                 dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
                                 time = 0,
                                 dwExtraInfo = IntPtr.Zero

@@ -52,6 +52,27 @@ public static class MacroRecorder
         _cts?.Dispose();
         _cts = null;
 
+        // Remove o clique final de parada (LeftClick/RightClick no final da lista)
+        if (_recordedActions.Count > 0)
+        {
+            int lastIndex = _recordedActions.Count - 1;
+            while (lastIndex >= 0)
+            {
+                var act = _recordedActions[lastIndex];
+                if (act.Type == ActionType.LeftClick || act.Type == ActionType.RightClick)
+                {
+                    _recordedActions.RemoveAt(lastIndex);
+                    // Se houver um movimento para esse clique logo antes, remove também
+                    if (lastIndex - 1 >= 0 && _recordedActions[lastIndex - 1].Type == ActionType.Move)
+                    {
+                        _recordedActions.RemoveAt(lastIndex - 1);
+                    }
+                    break;
+                }
+                lastIndex--;
+            }
+        }
+
         return new List<RecordedAction>(_recordedActions);
     }
 
@@ -60,7 +81,7 @@ public static class MacroRecorder
         DateTime lastActionTime = DateTime.UtcNow;
         
         // Window state
-        IntPtr lastActiveWindow = GetForegroundWindow();
+        string lastActiveWindowTitle = "";
 
         // Mouse states
         bool isLeftDown = false;
@@ -81,15 +102,16 @@ public static class MacroRecorder
 
         while (!token.IsCancellationRequested)
         {
-            // 0. Monitora foco em nova janela
+            // 0. Monitora foco em nova janela baseando-se no título
             IntPtr currentActiveWindow = GetForegroundWindow();
-            if (currentActiveWindow != lastActiveWindow && currentActiveWindow != IntPtr.Zero)
+            if (currentActiveWindow != IntPtr.Zero)
             {
                 var sb = new System.Text.StringBuilder(256);
                 if (GetWindowText(currentActiveWindow, sb, 256) > 0)
                 {
                     string winTitle = sb.ToString();
-                    if (!winTitle.Contains("MacroKids", StringComparison.OrdinalIgnoreCase) && 
+                    if (winTitle != lastActiveWindowTitle &&
+                        !winTitle.Contains("MacroKids", StringComparison.OrdinalIgnoreCase) && 
                         !string.IsNullOrWhiteSpace(winTitle))
                     {
                         var now = DateTime.UtcNow;
@@ -97,9 +119,9 @@ public static class MacroRecorder
                         lastActionTime = now;
 
                         _recordedActions.Add(new RecordedAction(ActionType.KeyPress, 0, 0, delay, "WINDOW_FOCUS:" + winTitle));
+                        lastActiveWindowTitle = winTitle;
                     }
                 }
-                lastActiveWindow = currentActiveWindow;
             }
 
             // 1. Monitora clique esquerdo do mouse (Down / Up / Drag)
