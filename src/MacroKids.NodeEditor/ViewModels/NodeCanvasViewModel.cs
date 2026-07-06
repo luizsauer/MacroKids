@@ -444,13 +444,48 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         _document.Nodes.Clear();
         _document.Connections.Clear();
 
+        // 1. Optimize: group consecutive simple printable keys into a single string for type_text
+        var optimized = new List<RecordedAction>();
+        string textBuffer = "";
+        int accumulatedDelay = 0;
+
+        for (int i = 0; i < actions.Count; i++)
+        {
+            var act = actions[i];
+            bool isPrintableChar = act.Type == ActionType.KeyPress && (act.KeyName.Length == 1 || act.KeyName == "Space");
+
+            if (isPrintableChar)
+            {
+                accumulatedDelay += act.DelayMs;
+                string charToAdd = act.KeyName == "Space" ? " " : act.KeyName.ToLowerInvariant();
+                textBuffer += charToAdd;
+            }
+            else
+            {
+                if (textBuffer.Length > 0)
+                {
+                    optimized.Add(new RecordedAction(ActionType.KeyPress, 0, 0, accumulatedDelay, textBuffer));
+                    textBuffer = "";
+                    accumulatedDelay = 0;
+                }
+                optimized.Add(act);
+            }
+        }
+
+        if (textBuffer.Length > 0)
+        {
+            optimized.Add(new RecordedAction(ActionType.KeyPress, 0, 0, accumulatedDelay, textBuffer));
+        }
+
+        // 2. Generate Graph
         double currentX = 100;
         double currentY = 150;
         Guid? previousDoneNodeId = null;
 
-        foreach (var action in actions)
+        foreach (var action in optimized)
         {
-            if (action.DelayMs > 100)
+            // Only create wait blocks for delays >= 800ms
+            if (action.DelayMs >= 800)
             {
                 var waitNode = new FlowNode
                 {
@@ -533,28 +568,61 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             }
             else if (action.Type == ActionType.KeyPress)
             {
-                var keyNode = new FlowNode
-                {
-                    InstanceId = Guid.NewGuid(),
-                    TypeId = "keyboard.press_key",
-                    X = currentX,
-                    Y = currentY,
-                    PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["times"] = 1 }
-                };
-                _document.Nodes.Add(keyNode);
+                // If the keyName length is > 1 and it's not a control key, it's grouped text
+                bool isControlKey = action.KeyName == "Enter" || action.KeyName == "Space" || action.KeyName == "Backspace" ||
+                                    action.KeyName == "Tab" || action.KeyName == "Esc" || action.KeyName == "Up" ||
+                                    action.KeyName == "Down" || action.KeyName == "Left" || action.KeyName == "Right";
 
-                if (previousDoneNodeId != null)
+                if (action.KeyName.Length > 1 && !isControlKey)
                 {
-                    _document.Connections.Add(new FlowConnection
+                    var typeTextNode = new FlowNode
                     {
-                        Id = Guid.NewGuid(),
-                        SourceNodeId = previousDoneNodeId.Value,
-                        SourcePinId = "done",
-                        TargetNodeId = keyNode.InstanceId,
-                        TargetPinId = "in"
-                    });
+                        InstanceId = Guid.NewGuid(),
+                        TypeId = "keyboard.type_text",
+                        X = currentX,
+                        Y = currentY,
+                        PinValues = new Dictionary<string, object?> { ["text"] = action.KeyName }
+                    };
+                    _document.Nodes.Add(typeTextNode);
+
+                    if (previousDoneNodeId != null)
+                    {
+                        _document.Connections.Add(new FlowConnection
+                        {
+                            Id = Guid.NewGuid(),
+                            SourceNodeId = previousDoneNodeId.Value,
+                            SourcePinId = "done",
+                            TargetNodeId = typeTextNode.InstanceId,
+                            TargetPinId = "in"
+                        });
+                    }
+                    previousDoneNodeId = typeTextNode.InstanceId;
                 }
-                previousDoneNodeId = keyNode.InstanceId;
+                else
+                {
+                    var keyNode = new FlowNode
+                    {
+                        InstanceId = Guid.NewGuid(),
+                        TypeId = "keyboard.press_key",
+                        X = currentX,
+                        Y = currentY,
+                        PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["times"] = 1 }
+                    };
+                    _document.Nodes.Add(keyNode);
+
+                    if (previousDoneNodeId != null)
+                    {
+                        _document.Connections.Add(new FlowConnection
+                        {
+                            Id = Guid.NewGuid(),
+                            SourceNodeId = previousDoneNodeId.Value,
+                            SourcePinId = "done",
+                            TargetNodeId = keyNode.InstanceId,
+                            TargetPinId = "in"
+                        });
+                    }
+                    previousDoneNodeId = keyNode.InstanceId;
+                }
                 currentX += 300;
                 if (currentX > 1500) { currentX = 100; currentY += 180; }
             }

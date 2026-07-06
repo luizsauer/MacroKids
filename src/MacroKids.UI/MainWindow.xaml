@@ -510,25 +510,25 @@
                           FontFamily="Nunito"
                           FontSize="11"
                           FontWeight="Bold">
-                    <Grid Background="#090D16">
+                    <Grid Background="{DynamicResource BrushSurface}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         
-                        <Grid Grid.Row="0" Background="#05080E">
+                        <Grid Grid.Row="0" Background="{DynamicResource BrushSurfaceVariant}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Terminal Output (Selecionável e Copiável)" Foreground="#8F9CAE" FontSize="9" VerticalAlignment="Center" FontFamily="Nunito" />
-                            <Button Grid.Column="1" Content="✕ Fechar" Command="{Binding CloseConsoleCommand}" Background="Transparent" Foreground="#EF4444" BorderThickness="0" FontSize="9" Padding="4,2" Cursor="Hand" />
+                            <TextBlock Text="Terminal Output (Selecionável e Copiável)" Foreground="{DynamicResource BrushTextSecondary}" FontSize="9" VerticalAlignment="Center" Margin="8,0,0,0" FontFamily="Nunito" />
+                            <Button Grid.Column="1" Content="✕ Fechar" Command="{Binding CloseConsoleCommand}" Background="Transparent" Foreground="#EF4444" BorderThickness="0" FontSize="9" Padding="6,2" Cursor="Hand" />
                         </Grid>
 
                         <TextBox Grid.Row="1"
                                  IsReadOnly="True"
                                  Background="Transparent"
-                                 Foreground="#10B981"
+                                 Foreground="{DynamicResource BrushTextPrimary}"
                                  BorderThickness="0"
                                  FontSize="11"
                                  FontFamily="Consolas"

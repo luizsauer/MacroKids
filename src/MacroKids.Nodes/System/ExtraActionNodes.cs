@@ -136,10 +136,38 @@ public class DoubleClickExecutor : INodeExecutor
 
 public class HoldKeyExecutor : INodeExecutor
 {
-    [DllImport("user32.dll")]
-    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion u;
+    }
 
-    private const int KEYEVENTF_KEYUP = 0x0002;
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+    private const int INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_SCANCODE = 0x0008;
+    private const uint KEYEVENTF_KEYUP = 0x0002;
 
     public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
     {
@@ -154,26 +182,66 @@ public class HoldKeyExecutor : INodeExecutor
             ms = rm;
         else if (node.PinValues.TryGetValue("ms", out var sm) && sm is int smInt)
             ms = smInt;
+        else if (inputs.TryGetValue("ms", out var mValObj) && mValObj != null)
+            ms = Convert.ToInt32(mValObj);
 
         int times = 1;
         if (inputs.TryGetValue("times", out var tVal) && tVal is int rt)
             times = rt;
         else if (node.PinValues.TryGetValue("times", out var st) && st is int stInt)
             times = stInt;
+        else if (inputs.TryGetValue("times", out var tValObj) && tValObj != null)
+            times = Convert.ToInt32(tValObj);
 
         ctx.Log($"Segurando tecla {key} por {ms}ms ({times} vez/vezes)...");
 
         byte virtualKey = GetVirtualKeyCode(key);
         if (virtualKey != 0)
         {
+            ushort scanCode = (ushort)MapVirtualKey(virtualKey, 0);
+
             for (int i = 0; i < times; i++)
             {
                 if (i > 0)
                     await Task.Delay(100);
 
-                keybd_event(virtualKey, 0, 0, UIntPtr.Zero); // Down
+                // Send Down Event
+                var inputDown = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    u = new InputUnion
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = 0,
+                            wScan = scanCode,
+                            dwFlags = KEYEVENTF_SCANCODE,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                SendInput(1, new[] { inputDown }, Marshal.SizeOf(typeof(INPUT)));
+
                 await Task.Delay(ms);
-                keybd_event(virtualKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Up
+
+                // Send Up Event
+                var inputUp = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    u = new InputUnion
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = 0,
+                            wScan = scanCode,
+                            dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                SendInput(1, new[] { inputUp }, Marshal.SizeOf(typeof(INPUT)));
             }
         }
 

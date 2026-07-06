@@ -68,6 +68,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(RightClickMetadata.Instance,  new RightClickExecutor());
         registry.Register(MouseScrollMetadata.Instance, new MouseScrollExecutor());
         registry.Register(DoubleClickMetadata.Instance, new DoubleClickExecutor());
+        registry.Register(HoldClickMetadata.Instance,   new HoldClickExecutor());
         // Keyboard
         registry.Register(PressKeyMetadata.Instance,  new PressKeyExecutor());
         registry.Register(TypeTextMetadata.Instance,  new TypeTextExecutor());
