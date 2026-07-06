@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using MacroKids.Core.Interfaces;
 using MacroKids.Core.Models;
 
@@ -78,24 +79,189 @@ public static class ComboKeyMetadata
 
 public class MouseScrollExecutor : INodeExecutor
 {
+    [DllImport("user32.dll")]
+    private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+
+    private const int MOUSEEVENTF_WHEEL = 0x0800;
+
     public Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
-        => Task.FromResult(NodeExecutionResult.Success(new() { ["done"] = true }));
+    {
+        string dir = "down";
+        if (inputs.TryGetValue("direction", out var dirVal) && dirVal is string sDir)
+            dir = sDir;
+        else if (node.PinValues.TryGetValue("direction", out var sVal) && sVal != null)
+            dir = sVal.ToString() ?? "down";
+
+        int amount = 3;
+        if (inputs.TryGetValue("amount", out var amVal) && amVal is int rAm)
+            amount = rAm;
+        else if (node.PinValues.TryGetValue("amount", out var sAm) && sAm is int sAmInt)
+            amount = sAmInt;
+
+        ctx.Log($"Executando scroll do mouse: {dir} {amount}x");
+
+        // 120 is WHEEL_DELTA. Positive is scroll forward/up, negative is backward/down.
+        int clickAmount = 120 * amount;
+        if (dir.Trim().ToLowerInvariant() == "down")
+            clickAmount = -clickAmount;
+
+        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, clickAmount, 0);
+
+        return Task.FromResult(NodeExecutionResult.Success(new() { ["done"] = true }));
+    }
 }
 
 public class DoubleClickExecutor : INodeExecutor
 {
-    public Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
-        => Task.FromResult(NodeExecutionResult.Success(new() { ["done"] = true }));
+    [DllImport("user32.dll")]
+    private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+
+    private const int MOUSEEVENTF_LEFTDOWN = 0x02;
+    private const int MOUSEEVENTF_LEFTUP = 0x04;
+
+    public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
+    {
+        ctx.Log("Executando duplo clique esquerdo");
+        
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+        await Task.Delay(100);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+
+        return NodeExecutionResult.Success(new() { ["done"] = true });
+    }
 }
 
 public class HoldKeyExecutor : INodeExecutor
 {
-    public Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
-        => Task.FromResult(NodeExecutionResult.Success(new() { ["done"] = true }));
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    private const int KEYEVENTF_KEYUP = 0x0002;
+
+    public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
+    {
+        string key = "Ctrl";
+        if (inputs.TryGetValue("key", out var kVal) && kVal is string rk)
+            key = rk;
+        else if (node.PinValues.TryGetValue("key", out var sk) && sk is string skStr)
+            key = skStr;
+
+        int ms = 500;
+        if (inputs.TryGetValue("ms", out var mVal) && mVal is int rm)
+            ms = rm;
+        else if (node.PinValues.TryGetValue("ms", out var sm) && sm is int smInt)
+            ms = smInt;
+
+        ctx.Log($"Segurando tecla {key} por {ms}ms...");
+
+        byte virtualKey = GetVirtualKeyCode(key);
+        if (virtualKey != 0)
+        {
+            keybd_event(virtualKey, 0, 0, UIntPtr.Zero); // Down
+            await Task.Delay(ms);
+            keybd_event(virtualKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Up
+        }
+
+        return NodeExecutionResult.Success(new() { ["done"] = true });
+    }
+
+    private static byte GetVirtualKeyCode(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return 0;
+        string cleanKey = key.Trim().ToUpperInvariant();
+        if (cleanKey.Length == 1) return (byte)cleanKey[0];
+
+        return cleanKey switch
+        {
+            "CTRL" or "CONTROL" => 0x11,
+            "SHIFT" => 0x10,
+            "ALT" => 0x12,
+            "ENTER" => 0x0D,
+            "SPACE" or "ESPAÇO" => 0x20,
+            "BACKSPACE" => 0x08,
+            "TAB" => 0x09,
+            "ESCAPE" or "ESC" => 0x1B,
+            "UP" or "CIMA" => 0x26,
+            "DOWN" or "BAIXO" => 0x28,
+            "LEFT" or "ESQUERDA" => 0x25,
+            "RIGHT" or "DIREITA" => 0x27,
+            _ => 0
+        };
+    }
 }
 
 public class ComboKeyExecutor : INodeExecutor
 {
-    public Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
-        => Task.FromResult(NodeExecutionResult.Success(new() { ["done"] = true }));
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    private const int KEYEVENTF_KEYUP = 0x0002;
+
+    public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
+    {
+        string combo = "Ctrl+C";
+        if (inputs.TryGetValue("combo", out var cVal) && cVal is string rc)
+            combo = rc;
+        else if (node.PinValues.TryGetValue("combo", out var sc) && sc is string scStr)
+            combo = scStr;
+        else if (inputs.TryGetValue("combo", out var cValObj) && cValObj != null)
+            combo = cValObj.ToString() ?? "Ctrl+C";
+
+        ctx.Log($"Executando atalho de teclado: {combo}");
+
+        var keys = combo.Split('+').Select(k => k.Trim().ToUpperInvariant()).ToList();
+        var pressedVirtualKeys = new List<byte>();
+
+        try
+        {
+            foreach (var keyName in keys)
+            {
+                byte vk = GetVirtualKeyCode(keyName);
+                if (vk != 0)
+                {
+                    keybd_event(vk, 0, 0, UIntPtr.Zero); // Down
+                    pressedVirtualKeys.Add(vk);
+                    await Task.Delay(10);
+                }
+            }
+        }
+        finally
+        {
+            // Release in reverse order
+            pressedVirtualKeys.Reverse();
+            foreach (var vk in pressedVirtualKeys)
+            {
+                keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Up
+                await Task.Delay(10);
+            }
+        }
+
+        return NodeExecutionResult.Success(new() { ["done"] = true });
+    }
+
+    private static byte GetVirtualKeyCode(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return 0;
+        string cleanKey = key.Trim().ToUpperInvariant();
+        if (cleanKey.Length == 1) return (byte)cleanKey[0];
+
+        return cleanKey switch
+        {
+            "CTRL" or "CONTROL" => 0x11,
+            "SHIFT" => 0x10,
+            "ALT" => 0x12,
+            "ENTER" => 0x0D,
+            "SPACE" or "ESPAÇO" => 0x20,
+            "BACKSPACE" => 0x08,
+            "TAB" => 0x09,
+            "ESCAPE" or "ESC" => 0x1B,
+            "UP" or "CIMA" => 0x26,
+            "DOWN" or "BAIXO" => 0x28,
+            "LEFT" or "ESQUERDA" => 0x25,
+            "RIGHT" or "DIREITA" => 0x27,
+            _ => 0
+        };
+    }
 }

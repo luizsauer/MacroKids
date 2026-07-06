@@ -24,34 +24,40 @@
                       OffsetY="{Binding OffsetY}"
                       IsGridVisible="{Binding IsGridVisible}">
                       
-      <!-- Connections (Rendered Behind Nodes) -->
-      <ItemsControl ItemsSource="{Binding Connections}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <Canvas />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
-            <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
-                              Stroke="{Binding StrokeBrush}" StrokeThickness="4"
-                              StrokeStartLineCap="Round"
-                              StrokeEndLineCap="Round"
-                              StrokeLineJoin="Round"
-                              MouseLeftButtonDown="Connection_MouseLeftButtonDown">
-          <local:ConnectionLine.Style>
-            <Style TargetType="local:ConnectionLine">
-              <Style.Triggers>
-                    <DataTrigger Binding="{Binding IsAnimating}" Value="True">
-                      <Setter Property="Stroke" Value="#EAB308" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </local:ConnectionLine.Style>
-            </local:ConnectionLine>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+              <!-- Connections (Rendered Behind Nodes) -->
+              <ItemsControl ItemsSource="{Binding Connections}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
+                    <!-- Custom style with transparent over-layer for easier double click / selection -->
+                    <Grid Cursor="Hand">
+                      <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
+                                      Stroke="Transparent" StrokeThickness="14"
+                                      MouseLeftButtonDown="Connection_MouseLeftButtonDown" />
+                      
+                      <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
+                                      Stroke="{Binding StrokeBrush}" StrokeThickness="4" IsHitTestVisible="False"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round">
+                        <local:ConnectionLine.Style>
+                          <Style TargetType="local:ConnectionLine">
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding IsAnimating}" Value="True">
+                               <Setter Property="Stroke" Value="#EAB308" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </local:ConnectionLine.Style>
+                      </local:ConnectionLine>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
 
       <local:ConnectionLine IsHitTestVisible="False"
                             Visibility="{Binding IsConnectingPins, Converter={StaticResource BoolToVisibility}}"

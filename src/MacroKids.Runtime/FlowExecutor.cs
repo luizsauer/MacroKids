@@ -127,6 +127,18 @@ public sealed class FlowExecutor
                     break;
                 }
 
+                // Apply the node's custom inline delay if specified
+                int inlineDelay = 0;
+                if (node.PinValues.TryGetValue("delay", out var dVal))
+                {
+                    if (dVal is int id) inlineDelay = id;
+                    else if (dVal != null) int.TryParse(dVal.ToString(), out inlineDelay);
+                }
+                if (inlineDelay > 0)
+                {
+                    await Task.Delay(inlineDelay, _cts.Token);
+                }
+
                 if (StepDelayMs > 0)
                     await Task.Delay(StepDelayMs, _cts.Token);
             }

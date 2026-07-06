@@ -82,6 +82,13 @@ public sealed partial class NodeViewModel : ObservableObject
                 DataInputPins.Add(pinVm);
         }
 
+        // Add a default delay pin to every node instance so users don't need a separate wait block
+        if (!PinValues.ContainsKey("delay"))
+            PinValues["delay"] = 100; // Default 100ms delay between blocks
+
+        var delayPin = new NodePin { Id = "delay", Label = "Delay (ms)", Direction = PinDirection.Input, DataType = typeof(int), DefaultValue = 100 };
+        DataInputPins.Add(new NodePinViewModel(this, delayPin));
+
         foreach (var pin in metadata.Outputs)
         {
             var pinVm = new NodePinViewModel(this, pin);

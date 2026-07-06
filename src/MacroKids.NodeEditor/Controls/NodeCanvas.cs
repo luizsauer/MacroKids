@@ -69,6 +69,11 @@ public class NodeCanvas : Canvas
 
         Focusable = true;
         SetResourceReference(BackgroundProperty, "BrushBackground");
+
+        // Set a huge initial width and height so the canvas acts like an infinite space.
+        // The scroll/pan and zoom will have plenty of virtual surface to work on.
+        Width = 50000;
+        Height = 50000;
     }
 
     private static void OnZoomChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

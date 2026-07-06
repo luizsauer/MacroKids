@@ -51,4 +51,9 @@ public class ConnectionLine : Shape
             return geometry;
         }
     }
+
+    // Set custom visual pen and fill behavior so that hit-testing on the line works nicely,
+    // and make sure we can trigger double click reliably.
+    // In WPF Shape, we can override or implement custom hit test or just let it use standard pen/stroke.
+    // Let's use standard stroke hit-test since standard Shape already handles this. We don't override GetPen.
 }
