@@ -52,9 +52,19 @@ public static class MacroRecorder
     private static async Task RecordLoopAsync(CancellationToken token)
     {
         DateTime lastActionTime = DateTime.UtcNow;
+        
+        // Mouse states
         bool isLeftDown = false;
+        POINT leftDownPos = new POINT();
+        DateTime leftDownTime = DateTime.UtcNow;
+
         bool isRightDown = false;
+        POINT rightDownPos = new POINT();
+        DateTime rightDownTime = DateTime.UtcNow;
+
+        // Keyboard states
         bool[] keyStates = new bool[256];
+        DateTime[] keyPressTimes = new DateTime[256];
 
         // Aguarda meio segundo para evitar gravar o clique no próprio botão iniciar
         await Task.Delay(500, token);
@@ -62,17 +72,40 @@ public static class MacroRecorder
 
         while (!token.IsCancellationRequested)
         {
-            // 1. Monitora clique esquerdo do mouse
+            // 1. Monitora clique esquerdo do mouse (Down / Up / Drag)
             short leftState = GetAsyncKeyState(0x01);
             bool currentLeft = (leftState & 0x8000) != 0;
             if (currentLeft && !isLeftDown)
             {
-                GetCursorPos(out var p);
+                GetCursorPos(out leftDownPos);
+                leftDownTime = DateTime.UtcNow;
+            }
+            else if (!currentLeft && isLeftDown)
+            {
+                GetCursorPos(out var leftUpPos);
                 var now = DateTime.UtcNow;
-                var delay = (int)(now - lastActionTime).TotalMilliseconds;
+                var duration = (int)(now - leftDownTime).TotalMilliseconds;
+                var delay = (int)(leftDownTime - lastActionTime).TotalMilliseconds;
                 lastActionTime = now;
 
-                _recordedActions.Add(new RecordedAction(ActionType.LeftClick, p.X, p.Y, delay));
+                // Verifica se houve arraste significativo (> 15 pixels)
+                int deltaX = Math.Abs(leftUpPos.X - leftDownPos.X);
+                int deltaY = Math.Abs(leftUpPos.Y - leftDownPos.Y);
+                if (deltaX > 15 || deltaY > 15)
+                {
+                    // Registra sequência de arrastar: Mover A -> Pressionar -> Mover B -> Soltar
+                    _recordedActions.Add(new RecordedAction(ActionType.Move, leftDownPos.X, leftDownPos.Y, delay));
+                    _recordedActions.Add(new RecordedAction(ActionType.LeftClick, leftDownPos.X, leftDownPos.Y, 50, "PRESS"));
+                    
+                    // Delay do arraste
+                    _recordedActions.Add(new RecordedAction(ActionType.Move, leftUpPos.X, leftUpPos.Y, duration));
+                    _recordedActions.Add(new RecordedAction(ActionType.LeftClick, leftUpPos.X, leftUpPos.Y, 50, "RELEASE"));
+                }
+                else
+                {
+                    // Clique simples
+                    _recordedActions.Add(new RecordedAction(ActionType.LeftClick, leftDownPos.X, leftDownPos.Y, delay));
+                }
             }
             isLeftDown = currentLeft;
 
@@ -81,16 +114,35 @@ public static class MacroRecorder
             bool currentRight = (rightState & 0x8000) != 0;
             if (currentRight && !isRightDown)
             {
-                GetCursorPos(out var p);
+                GetCursorPos(out rightDownPos);
+                rightDownTime = DateTime.UtcNow;
+            }
+            else if (!currentRight && isRightDown)
+            {
+                GetCursorPos(out var rightUpPos);
                 var now = DateTime.UtcNow;
-                var delay = (int)(now - lastActionTime).TotalMilliseconds;
+                var duration = (int)(now - rightDownTime).TotalMilliseconds;
+                var delay = (int)(rightDownTime - lastActionTime).TotalMilliseconds;
                 lastActionTime = now;
 
-                _recordedActions.Add(new RecordedAction(ActionType.RightClick, p.X, p.Y, delay));
+                int deltaX = Math.Abs(rightUpPos.X - rightDownPos.X);
+                int deltaY = Math.Abs(rightUpPos.Y - rightDownPos.Y);
+                if (deltaX > 15 || deltaY > 15)
+                {
+                    _recordedActions.Add(new RecordedAction(ActionType.Move, rightDownPos.X, rightDownPos.Y, delay));
+                    _recordedActions.Add(new RecordedAction(ActionType.RightClick, rightDownPos.X, rightDownPos.Y, 50, "PRESS"));
+                    
+                    _recordedActions.Add(new RecordedAction(ActionType.Move, rightUpPos.X, rightUpPos.Y, duration));
+                    _recordedActions.Add(new RecordedAction(ActionType.RightClick, rightUpPos.X, rightUpPos.Y, 50, "RELEASE"));
+                }
+                else
+                {
+                    _recordedActions.Add(new RecordedAction(ActionType.RightClick, rightDownPos.X, rightDownPos.Y, delay));
+                }
             }
             isRightDown = currentRight;
 
-            // 3. Monitora teclas de 0x08 (Backspace) até 0x90
+            // 3. Monitora teclas de 0x08 (Backspace) até 0x90 (Tecla Z e outras)
             for (int vk = 0x08; vk <= 0x90; vk++)
             {
                 // Ignora clicks de mouse
@@ -101,14 +153,28 @@ public static class MacroRecorder
 
                 if (pressed && !keyStates[vk])
                 {
+                    keyPressTimes[vk] = DateTime.UtcNow;
+                }
+                else if (!pressed && keyStates[vk])
+                {
                     var now = DateTime.UtcNow;
-                    var delay = (int)(now - lastActionTime).TotalMilliseconds;
+                    var duration = (int)(now - keyPressTimes[vk]).TotalMilliseconds;
+                    var delay = (int)(keyPressTimes[vk] - lastActionTime).TotalMilliseconds;
                     lastActionTime = now;
 
                     string keyName = GetKeyName(vk);
                     if (!string.IsNullOrEmpty(keyName))
                     {
-                        _recordedActions.Add(new RecordedAction(ActionType.KeyPress, 0, 0, delay, keyName));
+                        if (duration >= 300)
+                        {
+                            // Se a tecla ficou segurada por mais de 300ms, salva a duracao em Y
+                            _recordedActions.Add(new RecordedAction(ActionType.KeyPress, 0, duration, delay, keyName));
+                        }
+                        else
+                        {
+                            // Clique simples
+                            _recordedActions.Add(new RecordedAction(ActionType.KeyPress, 0, 0, delay, keyName));
+                        }
                     }
                 }
                 keyStates[vk] = pressed;
@@ -133,6 +199,7 @@ public static class MacroRecorder
             0x26 => "Up",
             0x27 => "Right",
             0x28 => "Down",
+            0x2E => "Delete",
             _ => ""
         };
     }

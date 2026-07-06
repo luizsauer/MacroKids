@@ -1,12 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using MacroKids.Core.Interfaces;
 using MacroKids.Core.Models;
 
 namespace MacroKids.Nodes.Mouse;
 
-/// <summary>
-/// Metadata definition for Left Click block.
-/// </summary>
 public static class LeftClickMetadata
 {
     public static readonly NodeMetadata Instance = new()
@@ -26,23 +26,82 @@ public static class LeftClickMetadata
 
 public class LeftClickExecutor : INodeExecutor
 {
-    [DllImport("user32.dll")]
-    private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion u;
+    }
 
-    private const int MOUSEEVENTF_LEFTDOWN = 0x02;
-    private const int MOUSEEVENTF_LEFTUP = 0x04;
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+    }
 
-    public Task<NodeExecutionResult> ExecuteAsync(
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    private const int INPUT_MOUSE = 0;
+    private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+
+    public async Task<NodeExecutionResult> ExecuteAsync(
         FlowNode node,
         IExecutionContext context,
         IReadOnlyDictionary<string, object?> resolvedInputs)
     {
-        context.Log("Executando clique esquerdo do mouse");
-        
-        // Simulates down then up native mouse event
-        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+        context.Log("Executando clique esquerdo do mouse...");
 
-        return Task.FromResult(NodeExecutionResult.Success(new() { ["done"] = true }));
+        var inputDown = new INPUT
+        {
+            type = INPUT_MOUSE,
+            u = new InputUnion
+            {
+                mi = new MOUSEINPUT
+                {
+                    dx = 0,
+                    dy = 0,
+                    mouseData = 0,
+                    dwFlags = MOUSEEVENTF_LEFTDOWN,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        var inputUp = new INPUT
+        {
+            type = INPUT_MOUSE,
+            u = new InputUnion
+            {
+                mi = new MOUSEINPUT
+                {
+                    dx = 0,
+                    dy = 0,
+                    mouseData = 0,
+                    dwFlags = MOUSEEVENTF_LEFTUP,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        SendInput(1, new[] { inputDown }, Marshal.SizeOf(typeof(INPUT)));
+        await Task.Delay(25);
+        SendInput(1, new[] { inputUp }, Marshal.SizeOf(typeof(INPUT)));
+
+        return NodeExecutionResult.Success(new() { ["done"] = true });
     }
 }

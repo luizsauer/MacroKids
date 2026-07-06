@@ -517,7 +517,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                 }
             }
 
-            if (action.Type == ActionType.LeftClick || action.Type == ActionType.RightClick)
+            if (action.Type == ActionType.Move)
             {
                 var moveNode = new FlowNode
                 {
@@ -543,47 +543,102 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                 previousDoneNodeId = moveNode.InstanceId;
                 currentX += 300;
                 if (currentX > 1500) { currentX = 100; currentY += 180; }
-
-                string clickTypeId = action.Type == ActionType.LeftClick ? "mouse.left_click" : "mouse.right_click";
-                var clickNode = new FlowNode
+            }
+            else if (action.Type == ActionType.LeftClick || action.Type == ActionType.RightClick)
+            {
+                // Se a acao for PRESS ou RELEASE (arraste do mouse)
+                if (action.KeyName == "PRESS" || action.KeyName == "RELEASE")
                 {
-                    InstanceId = Guid.NewGuid(),
-                    TypeId = clickTypeId,
-                    X = currentX,
-                    Y = currentY
-                };
-                _document.Nodes.Add(clickNode);
+                    string typeId = action.KeyName == "PRESS" ? "mouse.press_button" : "mouse.release_button";
+                    string btn = action.Type == ActionType.LeftClick ? "Left" : "Right";
+                    var btnNode = new FlowNode
+                    {
+                        InstanceId = Guid.NewGuid(),
+                        TypeId = typeId,
+                        X = currentX,
+                        Y = currentY,
+                        PinValues = new Dictionary<string, object?> { ["button"] = btn }
+                    };
+                    _document.Nodes.Add(btnNode);
 
-                _document.Connections.Add(new FlowConnection
+                    if (previousDoneNodeId != null)
+                    {
+                        _document.Connections.Add(new FlowConnection
+                        {
+                            Id = Guid.NewGuid(),
+                            SourceNodeId = previousDoneNodeId.Value,
+                            SourcePinId = "done",
+                            TargetNodeId = btnNode.InstanceId,
+                            TargetPinId = "in"
+                        });
+                    }
+                    previousDoneNodeId = btnNode.InstanceId;
+                }
+                else
                 {
-                    Id = Guid.NewGuid(),
-                    SourceNodeId = previousDoneNodeId.Value,
-                    SourcePinId = "done",
-                    TargetNodeId = clickNode.InstanceId,
-                    TargetPinId = "in"
-                });
-                previousDoneNodeId = clickNode.InstanceId;
+                    // Clique simples: Mover + Clicar
+                    var moveNode = new FlowNode
+                    {
+                        InstanceId = Guid.NewGuid(),
+                        TypeId = "mouse.move",
+                        X = currentX,
+                        Y = currentY,
+                        PinValues = new Dictionary<string, object?> { ["x"] = action.X, ["y"] = action.Y }
+                    };
+                    _document.Nodes.Add(moveNode);
+
+                    if (previousDoneNodeId != null)
+                    {
+                        _document.Connections.Add(new FlowConnection
+                        {
+                            Id = Guid.NewGuid(),
+                            SourceNodeId = previousDoneNodeId.Value,
+                            SourcePinId = "done",
+                            TargetNodeId = moveNode.InstanceId,
+                            TargetPinId = "in"
+                        });
+                    }
+                    previousDoneNodeId = moveNode.InstanceId;
+                    currentX += 300;
+                    if (currentX > 1500) { currentX = 100; currentY += 180; }
+
+                    string clickTypeId = action.Type == ActionType.LeftClick ? "mouse.left_click" : "mouse.right_click";
+                    var clickNode = new FlowNode
+                    {
+                        InstanceId = Guid.NewGuid(),
+                        TypeId = clickTypeId,
+                        X = currentX,
+                        Y = currentY
+                    };
+                    _document.Nodes.Add(clickNode);
+
+                    _document.Connections.Add(new FlowConnection
+                    {
+                        Id = Guid.NewGuid(),
+                        SourceNodeId = previousDoneNodeId.Value,
+                        SourcePinId = "done",
+                        TargetNodeId = clickNode.InstanceId,
+                        TargetPinId = "in"
+                    });
+                    previousDoneNodeId = clickNode.InstanceId;
+                }
                 currentX += 300;
                 if (currentX > 1500) { currentX = 100; currentY += 180; }
             }
             else if (action.Type == ActionType.KeyPress)
             {
-                // If the keyName length is > 1 and it's not a control key, it's grouped text
-                bool isControlKey = action.KeyName == "Enter" || action.KeyName == "Space" || action.KeyName == "Backspace" ||
-                                    action.KeyName == "Tab" || action.KeyName == "Esc" || action.KeyName == "Up" ||
-                                    action.KeyName == "Down" || action.KeyName == "Left" || action.KeyName == "Right";
-
-                if (action.KeyName.Length > 1 && !isControlKey)
+                // Se o tempo de retencao (Y) for maior/igual a 300ms, cria um bloco Hold Key
+                if (action.Y >= 300)
                 {
-                    var typeTextNode = new FlowNode
+                    var holdNode = new FlowNode
                     {
                         InstanceId = Guid.NewGuid(),
-                        TypeId = "keyboard.type_text",
+                        TypeId = "keyboard.hold_key",
                         X = currentX,
                         Y = currentY,
-                        PinValues = new Dictionary<string, object?> { ["text"] = action.KeyName }
+                        PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["ms"] = action.Y, ["times"] = 1 }
                     };
-                    _document.Nodes.Add(typeTextNode);
+                    _document.Nodes.Add(holdNode);
 
                     if (previousDoneNodeId != null)
                     {
@@ -592,36 +647,69 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                             Id = Guid.NewGuid(),
                             SourceNodeId = previousDoneNodeId.Value,
                             SourcePinId = "done",
-                            TargetNodeId = typeTextNode.InstanceId,
+                            TargetNodeId = holdNode.InstanceId,
                             TargetPinId = "in"
                         });
                     }
-                    previousDoneNodeId = typeTextNode.InstanceId;
+                    previousDoneNodeId = holdNode.InstanceId;
                 }
                 else
                 {
-                    var keyNode = new FlowNode
-                    {
-                        InstanceId = Guid.NewGuid(),
-                        TypeId = "keyboard.press_key",
-                        X = currentX,
-                        Y = currentY,
-                        PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["times"] = 1 }
-                    };
-                    _document.Nodes.Add(keyNode);
+                    bool isControlKey = action.KeyName == "Enter" || action.KeyName == "Space" || action.KeyName == "Backspace" ||
+                                        action.KeyName == "Tab" || action.KeyName == "Esc" || action.KeyName == "Up" ||
+                                        action.KeyName == "Down" || action.KeyName == "Left" || action.KeyName == "Right" ||
+                                        action.KeyName == "Delete";
 
-                    if (previousDoneNodeId != null)
+                    if (action.KeyName.Length > 1 && !isControlKey)
                     {
-                        _document.Connections.Add(new FlowConnection
+                        var typeTextNode = new FlowNode
                         {
-                            Id = Guid.NewGuid(),
-                            SourceNodeId = previousDoneNodeId.Value,
-                            SourcePinId = "done",
-                            TargetNodeId = keyNode.InstanceId,
-                            TargetPinId = "in"
-                        });
+                            InstanceId = Guid.NewGuid(),
+                            TypeId = "keyboard.type_text",
+                            X = currentX,
+                            Y = currentY,
+                            PinValues = new Dictionary<string, object?> { ["text"] = action.KeyName }
+                        };
+                        _document.Nodes.Add(typeTextNode);
+
+                        if (previousDoneNodeId != null)
+                        {
+                            _document.Connections.Add(new FlowConnection
+                            {
+                                Id = Guid.NewGuid(),
+                                SourceNodeId = previousDoneNodeId.Value,
+                                SourcePinId = "done",
+                                TargetNodeId = typeTextNode.InstanceId,
+                                TargetPinId = "in"
+                            });
+                        }
+                        previousDoneNodeId = typeTextNode.InstanceId;
                     }
-                    previousDoneNodeId = keyNode.InstanceId;
+                    else
+                    {
+                        var keyNode = new FlowNode
+                        {
+                            InstanceId = Guid.NewGuid(),
+                            TypeId = "keyboard.press_key",
+                            X = currentX,
+                            Y = currentY,
+                            PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["times"] = 1 }
+                        };
+                        _document.Nodes.Add(keyNode);
+
+                        if (previousDoneNodeId != null)
+                        {
+                            _document.Connections.Add(new FlowConnection
+                            {
+                                Id = Guid.NewGuid(),
+                                SourceNodeId = previousDoneNodeId.Value,
+                                SourcePinId = "done",
+                                TargetNodeId = keyNode.InstanceId,
+                                TargetPinId = "in"
+                            });
+                        }
+                        previousDoneNodeId = keyNode.InstanceId;
+                    }
                 }
                 currentX += 300;
                 if (currentX > 1500) { currentX = 100; currentY += 180; }
