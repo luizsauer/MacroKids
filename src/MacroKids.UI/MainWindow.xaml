@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:editor="clr-namespace:MacroKids.NodeEditor.Controls;assembly=MacroKids.NodeEditor"
+        xmlns:services="clr-namespace:MacroKids.UI.Services"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}" Height="720" Width="1200"
         Background="#1E1E2E" Foreground="#FFFFFF">
@@ -62,7 +63,10 @@
 
         <!-- Top Right controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Publish" Background="#2563EB" Foreground="White" FontWeight="Bold" Padding="16,6" BorderThickness="0" FontSize="12" FontFamily="Nunito">
+          <!-- Light/Dark theme toggle button -->
+          <Button Content="🌗" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="16" Margin="0,0,15,0" VerticalAlignment="Center" ToolTip="Alternar Tema"/>
+          
+          <Button Content="{Binding Translations[ButtonPublish], Source={x:Static services:LocalizationManager.Instance}}" Background="#2563EB" Foreground="White" FontWeight="Bold" Padding="16,6" BorderThickness="0" FontSize="12" FontFamily="Nunito">
             <Button.Resources>
               <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="6"/>
@@ -78,58 +82,102 @@
     <Border Grid.Row="1" Background="#0F172A" BorderBrush="#1F2937" BorderThickness="0,0,0,1" Padding="15,0">
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto"/>
-          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/> <!-- Search -->
+          <ColumnDefinition Width="Auto"/> <!-- Left controls (fit, grid) -->
+          <ColumnDefinition Width="Auto"/> <!-- Main actions (play, debug) -->
           <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/> <!-- Zoom -->
+          <ColumnDefinition Width="Auto"/> <!-- Right controls (search, link, full, lock) -->
         </Grid.ColumnDefinitions>
 
-        <!-- Search block Box -->
-        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="180" Height="28" Background="#1E293B" Foreground="White" BorderBrush="#334155" Padding="8,4" FontSize="12" FontFamily="Nunito">
+        <!-- Search block Box with Lupa and Placeholder -->
+        <Grid Grid.Column="0" VerticalAlignment="Center">
+          <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="190" Height="28" Background="#1E293B" Foreground="White" BorderBrush="#334155" BorderThickness="1" Padding="25,4,8,4" FontSize="12" FontFamily="Nunito">
             <TextBox.Resources>
               <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="6"/>
               </Style>
             </TextBox.Resources>
           </TextBox>
+          <!-- Lupa Icon inside textbox -->
+          <TextBlock Text="🔍" Foreground="#64748B" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False"/>
+          <!-- Placeholder overlay -->
+          <TextBlock Text="{Binding Translations[SearchPlaceholder], Source={x:Static services:LocalizationManager.Instance}}" Foreground="#64748B" FontSize="11" Margin="25,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontFamily="Nunito">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+
+        <!-- Left Toolbar Controls (Fit content, Grid toggle) -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
+          <Button Content="⛶" Command="{Binding CanvasViewModel.FitToContentCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Centralizar Visualização"/>
+          <Button Content="🌐" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Grade de Fundo"/>
         </StackPanel>
 
         <!-- Action / Debug / Execution Play Buttons -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
           <Button Content="↶" Command="{Binding CanvasViewModel.UndoCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="18" Padding="5,0"/>
           <Button Content="↷" Command="{Binding CanvasViewModel.RedoCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="18" Padding="5,0"/>
           
           <Border Width="1" Background="#1E293B" Margin="10,6"/>
 
-          <Button Content="▶ Play" Command="{Binding RunFlowCommand}" Background="#15803D" Foreground="White" FontWeight="Bold" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
+          <Button Command="{Binding RunFlowCommand}" Background="#15803D" Foreground="White" FontWeight="Bold" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
             <Button.Resources>
               <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="4"/>
               </Style>
             </Button.Resources>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="▶ "/>
+              <TextBlock Text="{Binding Translations[ButtonPlay], Source={x:Static services:LocalizationManager.Instance}}"/>
+            </StackPanel>
           </Button>
-          <Button Content="🐞 Debug" Background="#1E293B" Foreground="White" Padding="12,4" BorderThickness="1" BorderBrush="#334155" FontSize="11" Margin="2,0" Height="28">
+          <Button Background="#1E293B" Foreground="White" Padding="12,4" BorderThickness="1" BorderBrush="#334155" FontSize="11" Margin="2,0" Height="28">
             <Button.Resources>
               <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="4"/>
               </Style>
             </Button.Resources>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="🐞 "/>
+              <TextBlock Text="{Binding Translations[ButtonDebug], Source={x:Static services:LocalizationManager.Instance}}"/>
+            </StackPanel>
           </Button>
-          <Button Content="⏹ Stop" Background="#991B1B" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
+          <Button Background="#991B1B" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
             <Button.Resources>
               <Style TargetType="Border">
                 <Setter Property="CornerRadius" Value="4"/>
               </Style>
             </Button.Resources>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="⏹ "/>
+              <TextBlock Text="{Binding Translations[ButtonStop], Source={x:Static services:LocalizationManager.Instance}}"/>
+            </StackPanel>
           </Button>
         </StackPanel>
 
         <!-- Zoom options -->
-        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
           <Button Content="-" Command="{Binding CanvasViewModel.ZoomOutCommand}" Background="Transparent" Foreground="White" FontSize="14" BorderThickness="0" Padding="5"/>
           <TextBlock Text="100%" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" Margin="8,0" FontFamily="Nunito"/>
           <Button Content="+" Command="{Binding CanvasViewModel.ZoomInCommand}" Background="Transparent" Foreground="White" FontSize="14" BorderThickness="0" Padding="5"/>
+        </StackPanel>
+
+        <!-- Right Toolbar Controls (Search Canvas, Export, Connect Link, Fullscreen, Lock) -->
+        <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
+          <Button Content="🔍" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Procurar no Canvas"/>
+          <Button Content="📤" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Exportar Projeto"/>
+          <Button Content="🔗" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Linkar Blocos"/>
+          <Button Content="⛶" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Tela Cheia"/>
+          <Button Content="🔒" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Bloquear Canvas"/>
         </StackPanel>
       </Grid>
     </Border>
@@ -148,21 +196,62 @@
       <!-- Sidebar module selector -->
       <Border Grid.Column="0" Background="#0C1017" BorderBrush="#1F2937" BorderThickness="0,0,1,0">
         <StackPanel Margin="0,15">
-          <Button Content="🧩&#x0a;Blocks" Command="{Binding SelectModuleCommand}" CommandParameter="Blocks" Foreground="White" Background="#1E293B" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="𝔁&#x0a;Variables" Command="{Binding SelectModuleCommand}" CommandParameter="Variables" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="𝒇𝔁&#x0a;Functions" Command="{Binding SelectModuleCommand}" CommandParameter="Functions" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="🖼️&#x0a;Images" Command="{Binding SelectModuleCommand}" CommandParameter="Images" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="🔍&#x0a;OCR" Command="{Binding SelectModuleCommand}" CommandParameter="OCR" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="✨&#x0a;AI" Command="{Binding SelectModuleCommand}" CommandParameter="AI" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="⚡&#x0a;Events" Command="{Binding SelectModuleCommand}" CommandParameter="Events" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
-          <Button Content="⚙️&#x0a;Settings" Command="{Binding SelectModuleCommand}" CommandParameter="Settings" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="60" Margin="0,4" FontSize="11" FontFamily="Nunito"/>
+          <!-- Centralized and spaced visual module buttons matching Layout MacroKids.png -->
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="Blocks" Foreground="White" Background="#1E293B" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="🧩" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleBlocks], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" FontWeight="SemiBold"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="Variables" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="𝔁" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleVariables], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="Functions" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="𝒇𝔁" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleFunctions], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="Images" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="🖼️" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleImages], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="OCR" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="🔍" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleOCR], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="AI" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="✨" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleAI], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="Events" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="⚡" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleEvents], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding SelectModuleCommand}" CommandParameter="Settings" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="⚙️" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Translations[ModuleSettings], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito"/>
+            </StackPanel>
+          </Button>
         </StackPanel>
       </Border>
 
       <!-- Sidebar blocks list -->
       <Border Grid.Column="1" Background="#0F172A" BorderBrush="#1F2937" BorderThickness="0,0,1,0" Padding="10">
         <Grid>
-          <ListBox ItemsSource="{Binding GroupedNodes}" Background="Transparent" BorderThickness="0">
+          <ListBox ItemsSource="{Binding GroupedNodes}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemTemplate>
               <DataTemplate>
                 <StackPanel Margin="0,5">
@@ -173,18 +262,47 @@
                   <ItemsControl ItemsSource="{Binding}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
-                        <Border Background="#1E293B" CornerRadius="8" Padding="8" Margin="0,4" BorderThickness="1" BorderBrush="#334155">
+                        <!-- Colored Cards by category matching blockGroups.png Solid Colors -->
+                        <Border CornerRadius="8" Padding="10" Margin="0,4" BorderThickness="0">
+                          <Border.Style>
+                            <Style TargetType="Border">
+                              <Setter Property="Background" Value="#3B82F6" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding Category}" Value="Keyboard">
+                                  <Setter Property="Background" Value="#2563EB" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Category}" Value="Mouse">
+                                  <Setter Property="Background" Value="#16A34A" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Category}" Value="Loops">
+                                  <Setter Property="Background" Value="#F59E0B" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Category}" Value="Events">
+                                  <Setter Property="Background" Value="#EC4899" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Category}" Value="Variables">
+                                  <Setter Property="Background" Value="#8B5CF6" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                          
                           <Grid>
                             <Grid.ColumnDefinitions>
                               <ColumnDefinition Width="*"/>
                               <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                              <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" FontSize="12" FontFamily="Nunito"/>
-                              <TextBlock Text="{Binding Description}" FontSize="10" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                              <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" FontSize="11" FontFamily="Nunito" TextWrapping="Wrap"/>
                             </StackPanel>
                             <Button Grid.Column="1" Content="+" Command="{Binding DataContext.AddNodeToCanvasCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                    CommandParameter="{Binding}" Background="#2563EB" Foreground="White" Width="20" Height="20" BorderThickness="0" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    CommandParameter="{Binding}" Background="#1E293B" Foreground="White" Width="20" Height="20" BorderThickness="0" FontWeight="Bold" VerticalAlignment="Center">
+                              <Button.Resources>
+                                <Style TargetType="Border">
+                                  <Setter Property="CornerRadius" Value="10"/>
+                                </Style>
+                              </Button.Resources>
+                            </Button>
                           </Grid>
                         </Border>
                       </DataTemplate>
