@@ -58,20 +58,39 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:NodeViewModel}">
-            <Border BorderThickness="2" CornerRadius="8" Background="#252538" Width="180" Height="Auto" Margin="5"
+            <Border BorderThickness="2" CornerRadius="12" Width="200" Height="Auto" Margin="5"
                     PreviewMouseDown="Node_PreviewMouseDown"
                     MouseMove="Node_MouseMove"
                     MouseUp="Node_MouseUp"
                     Cursor="SizeAll">
               <Border.Style>
                 <Style TargetType="Border">
-                  <Setter Property="BorderBrush" Value="#2D2D44" />
+                  <Setter Property="BorderBrush" Value="Transparent" />
+                  <Setter Property="Background" Value="#3B82F6" />
                   <Style.Triggers>
+                    <!-- Background colored by Category matching Layout MacroKids.png -->
+                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Keyboard">
+                      <Setter Property="Background" Value="#2563EB" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Mouse">
+                      <Setter Property="Background" Value="#16A34A" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Loops">
+                      <Setter Property="Background" Value="#15803D" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Events">
+                      <Setter Property="Background" Value="#DB2777" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Variables">
+                      <Setter Property="Background" Value="#7C3AED" />
+                    </DataTrigger>
+                    
+                    <!-- Selection and Execution Glowing Outlines -->
                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                      <Setter Property="BorderBrush" Value="#3B82F6" />
+                      <Setter Property="BorderBrush" Value="#FFFFFF" />
                     </DataTrigger>
                     <DataTrigger Binding="{Binding IsExecuting}" Value="True">
-                      <Setter Property="BorderBrush" Value="#22C55E" />
+                      <Setter Property="BorderBrush" Value="#EAB308" />
                     </DataTrigger>
                     <DataTrigger Binding="{Binding HasError}" Value="True">
                       <Setter Property="BorderBrush" Value="#EF4444" />
@@ -79,91 +98,64 @@
                   </Style.Triggers>
                 </Style>
               </Border.Style>
-              <Grid>
-                <Grid.RowDefinitions>
-                  <RowDefinition Height="Auto"/>
-                  <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                
-                <!-- Header - Dynamically colored by Category -->
-                <Border Grid.Row="0" CornerRadius="6,6,0,0" Padding="10,8">
-                  <Border.Style>
-                    <Style TargetType="Border">
-                      <Setter Property="Background" Value="#2D2D44"/>
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding Metadata.Category}" Value="Mouse">
-                          <Setter Property="Background" Value="{StaticResource BrushMouse}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Metadata.Category}" Value="Keyboard">
-                          <Setter Property="Background" Value="{StaticResource BrushKeyboard}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Metadata.Category}" Value="Loops">
-                          <Setter Property="Background" Value="{StaticResource BrushLoops}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Metadata.Category}" Value="Events">
-                          <Setter Property="Background" Value="{StaticResource BrushEvents}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Metadata.Category}" Value="Variables">
-                          <Setter Property="Background" Value="{StaticResource BrushVariables}" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </Border.Style>
-                  <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13"/>
-                </Border>
-                
-                <!-- Content / Pins -->
-                <StackPanel Grid.Row="1" Margin="8">
-                  <TextBlock Text="{Binding Metadata.Description}" TextWrapping="Wrap" FontSize="11" Foreground="#8F9CAE" Margin="0,0,0,10"/>
+              
+              <Grid Margin="12,10">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/> <!-- Input Pin Left -->
+                  <ColumnDefinition Width="*"/>    <!-- Central Content Area -->
+                  <ColumnDefinition Width="Auto"/> <!-- Output Pin Right -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Input Pin (Projecting slightly outside left border) -->
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding Metadata.Inputs}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <ContentControl Style="{StaticResource PinDotStyle}" Margin="-18,0,0,0"
+                                      Tag="{Binding}"
+                                      PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
+                                      PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Central Content Area -->
+                <StackPanel Grid.Column="1" Margin="4,2">
+                  <!-- Block Title -->
+                  <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,6"/>
                   
-                  <!-- Inputs -->
+                  <!-- Parameter Inputs list -->
                   <ItemsControl ItemsSource="{Binding Metadata.Inputs}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
-                        <Grid Margin="0,3">
-                          <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                          </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                          <TextBlock Text="{Binding Label}" Foreground="#E2E8F0" FontSize="10" FontFamily="Nunito" VerticalAlignment="Center" Margin="0,0,5,0"/>
                           
-                          <!-- Connection Pin -->
-                          <ContentControl Style="{StaticResource PinDotStyle}" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0"
-                                          Tag="{Binding}"
-                                          PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
-                                          PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
-                          
-                          <!-- Label -->
-                          <TextBlock Text="{Binding Label}" Foreground="#FFFFFF" Grid.Column="1" VerticalAlignment="Center" FontSize="11" FontFamily="Nunito"/>
-                          
-                          <!-- Editable Input Box (for numbers/keys) -->
-                          <TextBox Grid.Column="2" Width="50" Height="20" Background="#1E1E2E" Foreground="#FFFFFF" BorderBrush="#2D2D44" 
-                                   BorderThickness="1" Margin="5,0,0,0" Padding="2,0" FontSize="10" VerticalAlignment="Center"
-                                   HorizontalContentAlignment="Center"/>
-                        </Grid>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-
-                  <!-- Outputs -->
-                  <ItemsControl ItemsSource="{Binding Metadata.Outputs}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <Grid Margin="0,3">
-                          <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                          </Grid.ColumnDefinitions>
-                          <TextBlock Text="{Binding Label}" Foreground="#FFFFFF" Grid.Column="0" TextAlignment="Right" VerticalAlignment="Center" FontSize="11" FontFamily="Nunito" Margin="0,0,5,0"/>
-                          <ContentControl Style="{StaticResource PinDotStyle}" Grid.Column="1" VerticalAlignment="Center"
-                                          Tag="{Binding}"
-                                          PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
-                                          PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
-                        </Grid>
+                          <!-- Dark inline input value parameter box -->
+                          <TextBox Width="75" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center"
+                                    Text="{Binding Label, Mode=TwoWay}"> <!-- Simple binding for demonstration to build successfully -->
+                            <TextBox.Resources>
+                              <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                              </Style>
+                            </TextBox.Resources>
+                          </TextBox>
+                        </StackPanel>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </StackPanel>
+
+                <!-- Right Output Pin (Projecting slightly outside right border) -->
+                <ItemsControl Grid.Column="2" ItemsSource="{Binding Metadata.Outputs}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <ContentControl Style="{StaticResource PinDotStyle}" Margin="0,0,-18,0"
+                                      Tag="{Binding}"
+                                      PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
+                                      PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
               </Grid>
             </Border>
           </DataTemplate>
