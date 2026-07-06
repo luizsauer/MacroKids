@@ -8,7 +8,7 @@ public sealed class LanguageOption
 {
     public string Name { get; }
     public string Code { get; }
-    public ImageSource Icon { get; }
+    public ImageSource? Icon { get; }
 
     public LanguageOption(string name, string code, string iconFileName)
     {

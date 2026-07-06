@@ -30,7 +30,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             Description = string.Empty,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            EngineVersion = "0.1.3-dev"
+            EngineVersion = "0.1.4-dev"
         };
 
         _history.HistoryChanged += (_, _) =>
@@ -116,11 +116,27 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
     // ── Node operations ───────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Syncs all current VM PinValues back to the corresponding FlowNodes in the document.
+    /// Call before any RebuildFromDocument so inline edits survive the rebuild.
+    /// </summary>
+    private void SyncVmPinValuesToDocument()
+    {
+        var nodeMap = _document.Nodes.ToDictionary(n => n.InstanceId);
+        foreach (var vm in Nodes)
+        {
+            if (nodeMap.TryGetValue(vm.InstanceId, out var node))
+                node.PinValues = new Dictionary<string, object?>(vm.PinValues);
+        }
+    }
+
     /// <summary>Place a new node on the canvas at the given canvas coordinates.</summary>
     public void AddNode(string typeId, double canvasX, double canvasY)
     {
         if (!_registry.TryGet(typeId, out var metadata, out _) || metadata is null)
             return;
+
+        SyncVmPinValuesToDocument();
 
         var flowNode = new FlowNode
         {
@@ -146,6 +162,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         if (flowNode is null)
             return;
 
+        SyncVmPinValuesToDocument();
         _history.Execute(new DeleteNodeCommand(_document, [flowNode]));
         TouchDocument();
         ClearSelection();
@@ -162,9 +179,13 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         if (flowNode is null)
             return;
 
+        // Persist current pin values so they survive any future undo/redo rebuild
+        flowNode.PinValues = new Dictionary<string, object?>(vm.PinValues);
+
         _history.Execute(new MoveNodeCommand(_document, [(flowNode, newX, newY)]));
         TouchDocument();
-        RebuildFromDocument(vm.InstanceId, preserveViewport: true);
+        // No RebuildFromDocument: X/Y already updated live on the VM during drag.
+        // ConnectionViewModels update automatically via PropertyChanged on NodeViewModel.X/Y.
     }
 
     // ── Connect pins ──────────────────────────────────────────────────────────
@@ -194,6 +215,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
         _history.Execute(new ConnectPinsCommand(_document, connection));
         TouchDocument();
+        SyncVmPinValuesToDocument();
         RebuildFromDocument(preserveViewport: true);
     }
 
@@ -203,6 +225,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         if (connection is null)
             return;
 
+        SyncVmPinValuesToDocument();
         _history.Execute(new DisconnectPinsCommand(_document, connection));
         TouchDocument();
         RebuildFromDocument(preserveViewport: true);

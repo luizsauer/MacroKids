@@ -145,37 +145,44 @@ public class NodeCanvas : Canvas
 
     protected override void OnRender(DrawingContext dc)
     {
-        if (IsGridVisible)
-        {
-            DrawGridDots(dc);
-        }
+        // Fill visible area first so there are no black/empty edges when zoomed out.
+        // We need to "undo" the ScaleTransform to get local coordinates that map to the
+        // full visible screen area, then fill with the background brush.
+        double safeZoom = Math.Max(Zoom, 0.01);
+        double visLeft   = -OffsetX / safeZoom;
+        double visTop    = -OffsetY / safeZoom;
+        double visWidth  = ActualWidth  / safeZoom;
+        double visHeight = ActualHeight / safeZoom;
 
-        base.OnRender(dc);
+        dc.DrawRectangle(Background ?? Brushes.Transparent, null,
+            new Rect(visLeft, visTop, visWidth, visHeight));
+
+        if (IsGridVisible)
+            DrawGridDots(dc, visLeft, visTop, visWidth, visHeight);
+
+        // Do not call base.OnRender — we draw Background ourselves to cover the visible area.
     }
 
-    private void DrawGridDots(DrawingContext dc)
+    private static void DrawGridDots(DrawingContext dc,
+        double visLeft, double visTop, double visWidth, double visHeight)
     {
-        // Compute area to draw based on viewport bounds
-        double width = ActualWidth;
-        double height = ActualHeight;
+        const double gridSize = 25.0;
+        var dotBrush = new SolidColorBrush(Color.FromArgb(45, 150, 165, 200));
 
-        if (width == 0 || height == 0) return;
+        // Dot radius in local coords — stays ~1.5 screen px regardless of zoom
+        // (ScaleTransform multiplies by Zoom, so local radius = 1.5/Zoom keeps screen size constant)
+        // We draw in the local coord space so dots visually travel with the canvas.
+        // Start at the first grid line that's visible (snapped to grid).
+        double startX = Math.Floor(visLeft  / gridSize) * gridSize;
+        double startY = Math.Floor(visTop   / gridSize) * gridSize;
+        double endX   = visLeft  + visWidth  + gridSize;
+        double endY   = visTop   + visHeight + gridSize;
 
-        double gridSize = 20.0;
-        Pen pen = new Pen(new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)), 1);
-        
-        // Draw standard subtle grid dots or lines
-        // For simplicity, drawing faint points aligned to grid
-        double startX = (OffsetX % gridSize) - OffsetX;
-        double startY = (OffsetY % gridSize) - OffsetY;
-
-        Brush dotBrush = new SolidColorBrush(Color.FromArgb(15, 255, 255, 255));
-
-        for (double x = -OffsetX; x < width - OffsetX; x += gridSize)
+        for (double x = startX; x < endX; x += gridSize)
         {
-            for (double y = -OffsetY; y < height - OffsetY; y += gridSize)
+            for (double y = startY; y < endY; y += gridSize)
             {
-                dc.DrawEllipse(dotBrush, null, new Point(x, y), 1.5, 1.5);
+                dc.DrawEllipse(dotBrush, null, new Point(x, y), 1.2, 1.2);
             }
         }
     }

@@ -26,7 +26,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private FlowExecutor? _activeExecutor;
     private NodeCanvasViewModel? _observedCanvas;
 
-    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.3-dev";
+    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.4-dev";
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _selectedModule = "Blocks";
     [ObservableProperty] private string _searchText = string.Empty;
@@ -102,7 +102,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void UpdateWindowTitle()
     {
         var pageTitle = SelectedPage?.Title ?? GetText("TabMyProject", "My Project");
-        WindowTitle = $"MacroKids - {pageTitle} - v0.1.3-dev";
+        WindowTitle = $"MacroKids - {pageTitle} - v0.1.4-dev";
     }
 
     public ImageSource ThemeIcon => LoadThemeIcon();
