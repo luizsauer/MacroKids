@@ -20,9 +20,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.1 (Dev)";
     [ObservableProperty] private string _statusMessage = "Pronto";
+    [ObservableProperty] private string _selectedModule = "Blocks"; // Default module selected
+    [ObservableProperty] private string _searchText = string.Empty;  // Filter search text
     
     public NodeCanvasViewModel CanvasViewModel { get; }
     public ObservableCollection<NodeMetadata> AvailableNodes { get; } = [];
+
+    // Filtered list of nodes to display on block list view
+    public IEnumerable<IGrouping<NodeCategory, NodeMetadata>> GroupedNodes
+    {
+        get
+        {
+            var query = _nodeRegistry.GetAll();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                query = query.Where(n => n.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) || 
+                                         n.Description.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+            }
+            return query.GroupBy(n => n.Category);
+        }
+    }
+
+    // Trigger UI updates when SearchText changes
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(GroupedNodes));
+    }
 
     public MainWindowViewModel()
     {
@@ -60,6 +83,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             CanvasViewModel.AddNode(metadata.TypeId, 150, 150);
             StatusMessage = $"Adicionado bloco: {metadata.Name}";
+        }
+    }
+
+    [RelayCommand]
+    private void SelectModule(string moduleName)
+    {
+        if (!string.IsNullOrWhiteSpace(moduleName))
+        {
+            SelectedModule = moduleName;
         }
     }
 
