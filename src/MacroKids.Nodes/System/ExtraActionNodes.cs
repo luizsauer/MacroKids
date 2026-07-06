@@ -195,7 +195,7 @@ public class HoldKeyExecutor : INodeExecutor
 
         ctx.Log($"Segurando tecla {key} por {ms}ms ({times} vez/vezes)...");
 
-        byte virtualKey = GetVirtualKeyCode(key);
+        byte virtualKey = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(key);
         if (virtualKey != 0)
         {
             ushort scanCode = (ushort)MapVirtualKey(virtualKey, 0);
@@ -247,30 +247,6 @@ public class HoldKeyExecutor : INodeExecutor
 
         return NodeExecutionResult.Success(new() { ["done"] = true });
     }
-
-    private static byte GetVirtualKeyCode(string key)
-    {
-        if (string.IsNullOrEmpty(key)) return 0;
-        string cleanKey = key.Trim().ToUpperInvariant();
-        if (cleanKey.Length == 1) return (byte)cleanKey[0];
-
-        return cleanKey switch
-        {
-            "CTRL" or "CONTROL" => 0x11,
-            "SHIFT" => 0x10,
-            "ALT" => 0x12,
-            "ENTER" => 0x0D,
-            "SPACE" or "ESPAÇO" => 0x20,
-            "BACKSPACE" => 0x08,
-            "TAB" => 0x09,
-            "ESCAPE" or "ESC" => 0x1B,
-            "UP" or "CIMA" => 0x26,
-            "DOWN" or "BAIXO" => 0x28,
-            "LEFT" or "ESQUERDA" => 0x25,
-            "RIGHT" or "DIREITA" => 0x27,
-            _ => 0
-        };
-    }
 }
 
 public class ComboKeyExecutor : INodeExecutor
@@ -299,7 +275,7 @@ public class ComboKeyExecutor : INodeExecutor
         {
             foreach (var keyName in keys)
             {
-                byte vk = GetVirtualKeyCode(keyName);
+                byte vk = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(keyName);
                 if (vk != 0)
                 {
                     keybd_event(vk, 0, 0, UIntPtr.Zero); // Down
@@ -320,29 +296,5 @@ public class ComboKeyExecutor : INodeExecutor
         }
 
         return NodeExecutionResult.Success(new() { ["done"] = true });
-    }
-
-    private static byte GetVirtualKeyCode(string key)
-    {
-        if (string.IsNullOrEmpty(key)) return 0;
-        string cleanKey = key.Trim().ToUpperInvariant();
-        if (cleanKey.Length == 1) return (byte)cleanKey[0];
-
-        return cleanKey switch
-        {
-            "CTRL" or "CONTROL" => 0x11,
-            "SHIFT" => 0x10,
-            "ALT" => 0x12,
-            "ENTER" => 0x0D,
-            "SPACE" or "ESPAÇO" => 0x20,
-            "BACKSPACE" => 0x08,
-            "TAB" => 0x09,
-            "ESCAPE" or "ESC" => 0x1B,
-            "UP" or "CIMA" => 0x26,
-            "DOWN" or "BAIXO" => 0x28,
-            "LEFT" or "ESQUERDA" => 0x25,
-            "RIGHT" or "DIREITA" => 0x27,
-            _ => 0
-        };
     }
 }

@@ -28,18 +28,44 @@ public static class PressKeyMetadata
 
 public class PressKeyExecutor : INodeExecutor
 {
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public InputUnion u;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct InputUnion
+    {
+        [FieldOffset(0)] public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
     [DllImport("user32.dll")]
-    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
-    private const int KEYEVENTF_KEYUP = 0x0002;
-
+    private const int INPUT_KEYBOARD = 1;
+    private const uint KEYEVENTF_SCANCODE = 0x0008;
+    private const uint KEYEVENTF_KEYUP = 0x0002;
     public async Task<NodeExecutionResult> ExecuteAsync(
         FlowNode node,
         IExecutionContext context,
         IReadOnlyDictionary<string, object?> resolvedInputs)
     {
-        string key = "A";
-
+        string key = "Enter";
         if (resolvedInputs.TryGetValue("key", out var kVal) && kVal is string rk)
             key = rk;
         else if (node.PinValues.TryGetValue("key", out var sk) && sk is string skStr)
@@ -60,49 +86,57 @@ public class PressKeyExecutor : INodeExecutor
 
         context.Log($"Pressionando tecla: {key} ({times} vez/vezes)");
 
-        byte virtualKey = GetVirtualKeyCode(key);
+        byte virtualKey = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(key);
         if (virtualKey != 0)
         {
+            ushort scanCode = (ushort)MapVirtualKey(virtualKey, 0);
+
             for (int i = 0; i < times; i++)
             {
                 if (i > 0)
                     await Task.Delay(50); // delay curto entre pressionamentos consecutivos
 
                 // Key Down
-                keybd_event(virtualKey, 0, 0, UIntPtr.Zero);
+                var inputDown = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    u = new InputUnion
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = 0,
+                            wScan = scanCode,
+                            dwFlags = KEYEVENTF_SCANCODE,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                SendInput(1, new[] { inputDown }, Marshal.SizeOf(typeof(INPUT)));
+
+                // Pequeno atraso para simular o pressionamento real
+                await Task.Delay(20);
+
                 // Key Up
-                keybd_event(virtualKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                var inputUp = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    u = new InputUnion
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = 0,
+                            wScan = scanCode,
+                            dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                SendInput(1, new[] { inputUp }, Marshal.SizeOf(typeof(INPUT)));
             }
         }
 
         return NodeExecutionResult.Success(new() { ["done"] = true });
-    }
-
-    private static byte GetVirtualKeyCode(string key)
-    {
-        if (string.IsNullOrEmpty(key)) return 0;
-
-        string cleanKey = key.Trim().ToUpperInvariant();
-        if (cleanKey.Length == 1)
-        {
-            return (byte)cleanKey[0]; // Retorna o ASCII da letra/número
-        }
-
-        return cleanKey switch
-        {
-            "ENTER" => 0x0D,
-            "SPACE" or "ESPAÇO" => 0x20,
-            "BACKSPACE" => 0x08,
-            "TAB" => 0x09,
-            "ESCAPE" or "ESC" => 0x1B,
-            "UP" or "CIMA" => 0x26,
-            "DOWN" or "BAIXO" => 0x28,
-            "LEFT" or "ESQUERDA" => 0x25,
-            "RIGHT" or "DIREITA" => 0x27,
-            "CTRL" or "CONTROL" => 0x11,
-            "SHIFT" => 0x10,
-            "ALT" => 0x12,
-            _ => 0
-        };
     }
 }

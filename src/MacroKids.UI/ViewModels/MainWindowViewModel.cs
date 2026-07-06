@@ -14,6 +14,7 @@ using MacroKids.Nodes.Logic;
 using MacroKids.Nodes.Mouse;
 using MacroKids.Nodes.System;
 using MacroKids.Nodes.Variables;
+using MacroKids.Nodes.Gamepad;
 using MacroKids.Runtime;
 using MacroKids.UI.Services;
 using MacroKids.UI.Views;
@@ -26,7 +27,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private FlowExecutor? _activeExecutor;
     private NodeCanvasViewModel? _observedCanvas;
 
-    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.4-dev";
+    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.5-dev";
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _selectedModule = "Blocks";
     [ObservableProperty] private string _searchText = string.Empty;
@@ -69,6 +70,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(MouseScrollMetadata.Instance, new MouseScrollExecutor());
         registry.Register(DoubleClickMetadata.Instance, new DoubleClickExecutor());
         registry.Register(HoldClickMetadata.Instance,   new HoldClickExecutor());
+        registry.Register(PressMouseButtonMetadata.Instance, new PressMouseButtonExecutor());
+        registry.Register(ReleaseMouseButtonMetadata.Instance, new ReleaseMouseButtonExecutor());
+        registry.Register(PressGamepadButtonMetadata.Instance, new PressGamepadButtonExecutor());
         // Keyboard
         registry.Register(PressKeyMetadata.Instance,  new PressKeyExecutor());
         registry.Register(TypeTextMetadata.Instance,  new TypeTextExecutor());
