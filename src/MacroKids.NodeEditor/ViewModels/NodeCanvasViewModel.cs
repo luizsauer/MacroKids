@@ -627,8 +627,34 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             }
             else if (action.Type == ActionType.KeyPress)
             {
+                if (action.KeyName.StartsWith("WINDOW_FOCUS:"))
+                {
+                    string winTitle = action.KeyName.Substring("WINDOW_FOCUS:".Length);
+                    var focusNode = new FlowNode
+                    {
+                        InstanceId = Guid.NewGuid(),
+                        TypeId = "window.focus",
+                        X = currentX,
+                        Y = currentY,
+                        PinValues = new Dictionary<string, object?> { ["title"] = winTitle, ["action"] = "Focus/Restore" }
+                    };
+                    _document.Nodes.Add(focusNode);
+
+                    if (previousDoneNodeId != null)
+                    {
+                        _document.Connections.Add(new FlowConnection
+                        {
+                            Id = Guid.NewGuid(),
+                            SourceNodeId = previousDoneNodeId.Value,
+                            SourcePinId = "done",
+                            TargetNodeId = focusNode.InstanceId,
+                            TargetPinId = "in"
+                        });
+                    }
+                    previousDoneNodeId = focusNode.InstanceId;
+                }
                 // Se o tempo de retencao (Y) for maior/igual a 300ms, cria um bloco Hold Key
-                if (action.Y >= 300)
+                else if (action.Y >= 300)
                 {
                     var holdNode = new FlowNode
                     {

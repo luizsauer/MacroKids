@@ -85,6 +85,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(WhileLoopMetadata.Instance,  new WhileLoopExecutor());
         // Logic
         registry.Register(IfConditionMetadata.Instance, new IfConditionExecutor());
+        registry.Register(FocusWindowMetadata.Instance, new FocusWindowExecutor());
         // Variables
         registry.Register(SetVariableMetadata.Instance,       new SetVariableExecutor());
         registry.Register(GetVariableMetadata.Instance,       new GetVariableExecutor());

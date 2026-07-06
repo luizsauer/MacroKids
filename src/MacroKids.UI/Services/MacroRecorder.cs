@@ -22,6 +22,12 @@ public static class MacroRecorder
         public int Y;
     }
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
     private static CancellationTokenSource? _cts;
     private static readonly List<RecordedAction> _recordedActions = [];
 
@@ -53,6 +59,9 @@ public static class MacroRecorder
     {
         DateTime lastActionTime = DateTime.UtcNow;
         
+        // Window state
+        IntPtr lastActiveWindow = GetForegroundWindow();
+
         // Mouse states
         bool isLeftDown = false;
         POINT leftDownPos = new POINT();
@@ -72,6 +81,27 @@ public static class MacroRecorder
 
         while (!token.IsCancellationRequested)
         {
+            // 0. Monitora foco em nova janela
+            IntPtr currentActiveWindow = GetForegroundWindow();
+            if (currentActiveWindow != lastActiveWindow && currentActiveWindow != IntPtr.Zero)
+            {
+                var sb = new System.Text.StringBuilder(256);
+                if (GetWindowText(currentActiveWindow, sb, 256) > 0)
+                {
+                    string winTitle = sb.ToString();
+                    if (!winTitle.Contains("MacroKids", StringComparison.OrdinalIgnoreCase) && 
+                        !string.IsNullOrWhiteSpace(winTitle))
+                    {
+                        var now = DateTime.UtcNow;
+                        var delay = (int)(now - lastActionTime).TotalMilliseconds;
+                        lastActionTime = now;
+
+                        _recordedActions.Add(new RecordedAction(ActionType.KeyPress, 0, 0, delay, "WINDOW_FOCUS:" + winTitle));
+                    }
+                }
+                lastActiveWindow = currentActiveWindow;
+            }
+
             // 1. Monitora clique esquerdo do mouse (Down / Up / Drag)
             short leftState = GetAsyncKeyState(0x01);
             bool currentLeft = (leftState & 0x8000) != 0;
