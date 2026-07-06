@@ -35,6 +35,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private bool _isLanguageMenuOpen;
     [ObservableProperty] private bool _isLogExpanded;
     public ObservableCollection<string> ExecutionLogs { get; } = [];
+    public string ExecutionLogsText => string.Join(Environment.NewLine, ExecutionLogs);
 
     public ObservableCollection<ProjectPageViewModel> Pages { get; } = [];
     public ObservableCollection<NodeMetadata> AvailableNodes { get; } = [];
@@ -415,8 +416,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         StatusMessage = GetText("StatusLoading", "Loading project...");
         var doc = await MacroKids.Core.Serialization.ProjectPackager.UnpackAsync(dialog.FileName);
-        CanvasViewModel.LoadDocument(doc);
-        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusProjectLoaded", "Project '{0}' loaded!"), doc.Name);
+        
+        var newPage = new ProjectPageViewModel(_nodeRegistry, doc.Name, canClose: true);
+        newPage.CanvasViewModel.LoadDocument(doc);
+        Pages.Add(newPage);
+        SelectedPage = newPage;
+
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusProjectLoaded", "Project '{0}' loaded in a new tab!"), doc.Name);
     }
 
     [RelayCommand]
@@ -450,6 +456,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         CanvasViewModel.ToggleGridCommand.Execute(null);
     }
 
+    [RelayCommand]
+    private void CloseConsole()
+    {
+        IsLogExpanded = false;
+    }
+
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DeleteSelected()
     {
@@ -474,6 +486,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         ExecutionLogs.Clear();
+        OnPropertyChanged(nameof(ExecutionLogsText));
         IsLogExpanded = true;
 
         try
@@ -530,6 +543,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 {
                     var timestamp = e.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
                     ExecutionLogs.Add($"[{timestamp}] [{e.Level}] {e.Message}");
+                    OnPropertyChanged(nameof(ExecutionLogsText));
                 });
             });
 

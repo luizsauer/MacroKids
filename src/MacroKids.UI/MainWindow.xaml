@@ -355,7 +355,8 @@
                 <ColumnDefinition Width="58" />
                 <ColumnDefinition Width="175" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="260" MinWidth="180" MaxWidth="500" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Background="{DynamicResource BrushSurface}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,0,1,0">
@@ -482,21 +483,40 @@
                           FontFamily="Nunito"
                           FontSize="11"
                           FontWeight="Bold">
-                    <Border Background="#090D16" Height="140" Padding="10">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding ExecutionLogs}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" Foreground="#10B981" FontSize="11" FontFamily="Consolas" Margin="0,2" TextWrapping="Wrap" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
+                    <Grid Height="140" Background="#090D16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        
+                        <Grid Grid.Row="0" Background="#05080E">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Terminal Output (Selecionável e Copiável)" Foreground="#8F9CAE" FontSize="9" VerticalAlignment="Center" FontFamily="Nunito" />
+                            <Button Grid.Column="1" Content="✕ Fechar" Command="{Binding CloseConsoleCommand}" Background="Transparent" Foreground="#EF4444" BorderThickness="0" FontSize="9" Padding="4,2" Cursor="Hand" />
+                        </Grid>
+
+                        <TextBox Grid.Row="1"
+                                 IsReadOnly="True"
+                                 Background="Transparent"
+                                 Foreground="#10B981"
+                                 BorderThickness="0"
+                                 FontSize="11"
+                                 FontFamily="Consolas"
+                                 Padding="8"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding ExecutionLogsText, Mode=OneWay}" />
+                    </Grid>
                 </Expander>
             </Grid>
 
-            <Border Grid.Column="3" Background="{DynamicResource BrushSurfaceVariant}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="1,0,0,0" Padding="14">
+            <GridSplitter Grid.Column="3" Width="4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource BrushSurfaceVariant}" ShowsPreview="True" />
+
+            <Border Grid.Column="4" Background="{DynamicResource BrushSurfaceVariant}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="1,0,0,0" Padding="14">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -547,6 +567,10 @@
                                                  BorderBrush="{DynamicResource BrushSurfaceVariant}"
                                                  BorderThickness="1"
                                                  Padding="8,6"
+                                                 MinLines="3"
+                                                 MaxLines="5"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
                                                  Margin="0,0,0,12" />
 
                                         <TextBlock Text="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorInputs]}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,6" />
@@ -560,6 +584,7 @@
                                                                  BorderBrush="{DynamicResource BrushSurfaceVariant}"
                                                                  BorderThickness="1"
                                                                  Padding="8,6"
+                                                                 MinHeight="28"
                                                                  Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                     </StackPanel>
                                                 </DataTemplate>
@@ -576,8 +601,16 @@
                                                 Padding="10,6"
                                                 Margin="0,0,0,12" />
 
+                                        <Button Content="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorDuplicateBlock]}"
+                                                Command="{Binding DataContext.DuplicateSelectedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                Background="#0F766E"
+                                                Foreground="White"
+                                                BorderThickness="0"
+                                                Padding="10,6"
+                                                Margin="0,10,0,0" />
+
                                         <Button Content="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorDeleteBlock]}"
-                                                Command="{Binding DataContext.CanvasViewModel.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                Command="{Binding DataContext.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 Background="#991B1B"
                                                 Foreground="White"
                                                 BorderThickness="0"
