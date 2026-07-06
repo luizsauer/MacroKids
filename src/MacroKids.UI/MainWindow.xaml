@@ -46,10 +46,10 @@
 
         <!-- Quick Controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Desfazer" Command="{Binding CanvasViewModel.UndoCommand}" Margin="5,0" Padding="12,6" Background="#2A2A3E" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="12" FontWeight="SemiBold"/>
-          <Button Content="Refazer" Command="{Binding CanvasViewModel.RedoCommand}" Margin="5,0" Padding="12,6" Background="#2A2A3E" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="12" FontWeight="SemiBold"/>
-          <Border Width="1" Background="#2D2D44" Margin="10,0"/>
-          <Button Content="▶ Executar" Background="#22C55E" Foreground="White" FontWeight="Bold" Padding="15,8" BorderThickness="0" FontSize="12"/>
+          <Button Content="Desfazer" Command="{Binding CanvasViewModel.UndoCommand}" Margin="4,0" Width="90" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
+          <Button Content="Refazer" Command="{Binding CanvasViewModel.RedoCommand}" Margin="4,0" Width="90" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
+          <Border Width="1" Background="#2D2D44" Margin="10,5"/>
+          <Button Content="▶ Executar" Background="#22C55E" Foreground="White" FontWeight="Bold" Width="100" Height="32" BorderThickness="0" FontSize="12"/>
         </StackPanel>
       </Grid>
     </Border>
@@ -68,30 +68,56 @@
       </Grid.ColumnDefinitions>
 
       <!-- Sidebar -->
-      <Border Grid.Column="0" Background="#252538" BorderBrush="#2D2D44" BorderThickness="0,0,1,0" Padding="10">
+      <Border Grid.Column="0" Background="#181824" BorderBrush="#2D2D44" BorderThickness="0,0,1,0" Padding="12">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
           </Grid.RowDefinitions>
           
-          <TextBlock Grid.Row="0" Text="MÓDULOS DISPONÍVEIS" FontSize="11" FontWeight="Bold" Foreground="#8F9CAE" Margin="0,0,0,10"/>
+          <TextBlock Grid.Row="0" Text="BLOCO NATIVOS" FontSize="11" FontWeight="Bold" Foreground="#8F9CAE" Margin="0,0,0,15" FontFamily="Nunito"/>
           
           <ListBox Grid.Row="1" ItemsSource="{Binding AvailableNodes}" Background="Transparent" BorderThickness="0">
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <Border BorderThickness="1" BorderBrush="#2D2D44" CornerRadius="6" Padding="10" Margin="0,4" Background="#2D2D44">
+                <Border BorderThickness="2" BorderBrush="#2D2D44" CornerRadius="8" Padding="12" Margin="0,6" Background="#252538">
                   <Grid>
                     <Grid.RowDefinitions>
                       <RowDefinition Height="Auto"/>
                       <RowDefinition Height="Auto"/>
                       <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="{Binding Name}" FontWeight="Bold" Foreground="White" FontSize="13"/>
-                    <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="11" Foreground="#8F9CAE" TextWrapping="Wrap" Margin="0,4,0,8"/>
-                    <Button Grid.Row="2" Content="Adicionar" Padding="6,3" FontSize="11" 
+                    
+                    <!-- Title with visual category badge style -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                      <Ellipse Width="10" Height="10" Margin="0,0,8,0">
+                        <Ellipse.Style>
+                          <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="#5A6E85"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding Category}" Value="Mouse">
+                                <Setter Property="Fill" Value="{StaticResource BrushMouse}" />
+                              </DataTrigger>
+                              <DataTrigger Binding="{Binding Category}" Value="Keyboard">
+                                <Setter Property="Fill" Value="{StaticResource BrushKeyboard}" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </Ellipse.Style>
+                      </Ellipse>
+                      <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" FontSize="14" FontFamily="Nunito"/>
+                    </StackPanel>
+                    
+                    <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="11" Foreground="#8F9CAE" TextWrapping="Wrap" FontFamily="Nunito" Margin="0,0,0,10"/>
+                    <Button Grid.Row="2" Content="+ Adicionar" Padding="10,5" FontSize="11" FontWeight="Bold"
                             Command="{Binding DataContext.AddNodeToCanvasCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                            CommandParameter="{Binding}" Background="#3B82F6" Foreground="White" BorderThickness="0" HorizontalAlignment="Left"/>
+                            CommandParameter="{Binding}" Background="#3B82F6" Foreground="White" BorderThickness="0" HorizontalAlignment="Stretch">
+                      <Button.Resources>
+                        <Style TargetType="Border">
+                          <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                      </Button.Resources>
+                    </Button>
                   </Grid>
                 </Border>
               </DataTemplate>
