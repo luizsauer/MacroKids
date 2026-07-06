@@ -1,6 +1,7 @@
 using MacroKids.Core.Events;
 using MacroKids.Core.Interfaces;
 using MacroKids.Core.Models;
+using MacroKids.Core.Services;
 
 namespace MacroKids.Runtime;
 
@@ -215,12 +216,8 @@ public sealed class FlowExecutor
             }
 
             // Inline delays
-            int inlineDelay = 0;
-            if (node.PinValues.TryGetValue("delay", out var dVal))
-            {
-                if (dVal is int id) inlineDelay = id;
-                else if (dVal != null) int.TryParse(dVal.ToString(), out inlineDelay);
-            }
+            int inlineDelay = MacroKids.Core.Services.PinValueReader.GetInt(
+                resolvedInputs, node.PinValues, "delay", 0);
             if (inlineDelay > 0)
                 await Task.Delay(inlineDelay, _cts.Token);
 
@@ -561,22 +558,7 @@ public sealed class FlowExecutor
         return resolved;
     }
 
-    private static object? UnboxJsonElement(object? value)
-    {
-        if (value is System.Text.Json.JsonElement element)
-        {
-            return element.ValueKind switch
-            {
-                System.Text.Json.JsonValueKind.String => element.GetString(),
-                System.Text.Json.JsonValueKind.Number => element.TryGetInt32(out int i) ? i : (element.TryGetDouble(out double d) ? d : element.GetRawText()),
-                System.Text.Json.JsonValueKind.True => true,
-                System.Text.Json.JsonValueKind.False => false,
-                System.Text.Json.JsonValueKind.Null => null,
-                _ => element.GetRawText()
-            };
-        }
-        return value;
-    }
+    private static object? UnboxJsonElement(object? value) => PinValueReader.Unbox(value);
 
     private static bool EvaluateCondition(string condition, ExecutionContext context)
     {

@@ -13,7 +13,7 @@ Monte fluxos poderosos com blocos coloridos — sem escrever uma linha de códig
 [![WPF](https://img.shields.io/badge/WPF-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://learn.microsoft.com/dotnet/desktop/wpf/)
 [![License](https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/luizsauer/MacroKids/build-and-test.yml?style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/luizsauer/MacroKids/actions)
-[![Version](https://img.shields.io/badge/Version-0.1.3--dev-F97316?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.1.5--dev-F97316?style=for-the-badge)](CHANGELOG.md)
 
 </div>
 

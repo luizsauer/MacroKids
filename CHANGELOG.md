@@ -7,6 +7,25 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.1.5-dev] - 2026-07-06
+
+### Added
+- Centralized `NativeInput` helper with desktop/game fallbacks for mouse and keyboard
+- `KeyboardMapper.GetKeyName` for full virtual-key coverage in the macro recorder
+- `PinValueReader` for robust pin value parsing (including multi-monitor negative coordinates)
+
+### Fixed
+- Mouse clicks on multi-monitor setups (negative X coordinates no longer ignored)
+- Held letter keys (e.g. W) recorded as `hold_key` instead of `press_key` / `type_text`
+- Recorder import uses inline node delay instead of chaining `wait` blocks between clicks
+- App starts with a single empty **New Automation** tab (no sample blocks)
+- Project tab title updates when saving a `.mkproject` file
+- Window focus uses `AttachThreadInput` for reliable foreground switching
+
+### Improved
+- Macro recorder monitors the full keyboard range (0x08–0xFE)
+- JsonElement pin values normalized when loading projects
+
 ## [0.1.4-dev] - 2026-07-06
 
 ### Added

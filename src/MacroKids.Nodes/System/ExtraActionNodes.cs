@@ -136,51 +136,6 @@ public class DoubleClickExecutor : INodeExecutor
 
 public class HoldKeyExecutor : INodeExecutor
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct INPUT
-    {
-        public uint type;
-        public InputUnion u;
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion
-    {
-        [FieldOffset(0)] public MOUSEINPUT mi;
-        [FieldOffset(0)] public KEYBDINPUT ki;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MOUSEINPUT
-    {
-        public int dx;
-        public int dy;
-        public uint mouseData;
-        public uint dwFlags;
-        public uint time;
-        public IntPtr dwExtraInfo;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct KEYBDINPUT
-    {
-        public ushort wVk;
-        public ushort wScan;
-        public uint dwFlags;
-        public uint time;
-        public IntPtr dwExtraInfo;
-    }
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-
-    [DllImport("user32.dll")]
-    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
-
-    private const int INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
-    private const uint KEYEVENTF_KEYUP = 0x0002;
-
     public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
     {
         string key = "Ctrl";
@@ -189,87 +144,35 @@ public class HoldKeyExecutor : INodeExecutor
         else if (node.PinValues.TryGetValue("key", out var sk) && sk is string skStr)
             key = skStr;
 
-        int ms = 500;
-        if (inputs.TryGetValue("ms", out var mv) && mv is int mi)
-            ms = mi;
-        else if (node.PinValues.TryGetValue("ms", out var sm) && sm is int smInt)
-            ms = smInt;
-
-        int times = 1;
-        if (inputs.TryGetValue("times", out var tv) && tv is int ti)
-            times = ti;
-        else if (node.PinValues.TryGetValue("times", out var st) && st is int stInt)
-            times = stInt;
+        int ms = MacroKids.Core.Services.PinValueReader.GetInt(inputs, node.PinValues, "ms", 500);
+        int times = MacroKids.Core.Services.PinValueReader.GetInt(inputs, node.PinValues, "times", 1);
 
         ctx.Log($"Segurando tecla(s) {key} por {ms}ms ({times} vez/vezes)...");
 
         var keyParts = key.Split(new[] { '+', ',' }, StringSplitOptions.RemoveEmptyEntries);
-        var keyData = new List<(ushort scanCode, ushort virtualKey, uint downFlags, uint upFlags)>();
+        var virtualKeys = new List<byte>();
 
         foreach (var kp in keyParts)
         {
             byte vk = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(kp);
             if (vk != 0)
-            {
-                ushort sc = (ushort)MapVirtualKey(vk, 0);
-                bool isExtended = (vk >= 0x21 && vk <= 0x2F) || (vk >= 0x25 && vk <= 0x28);
-                uint downFlags = isExtended ? KEYEVENTF_EXTENDEDKEY : 0;
-                uint upFlags = KEYEVENTF_KEYUP | (isExtended ? KEYEVENTF_EXTENDEDKEY : 0);
-                keyData.Add((sc, vk, downFlags, upFlags));
-            }
+                virtualKeys.Add(vk);
         }
 
-        if (keyData.Count > 0)
+        if (virtualKeys.Count > 0)
         {
             for (int i = 0; i < times; i++)
             {
                 if (i > 0)
                     await Task.Delay(100);
 
-                var inputsDown = new INPUT[keyData.Count];
-                for (int s = 0; s < keyData.Count; s++)
-                {
-                    inputsDown[s] = new INPUT
-                    {
-                        type = INPUT_KEYBOARD,
-                        u = new InputUnion
-                        {
-                            ki = new KEYBDINPUT
-                            {
-                                wVk = keyData[s].virtualKey,
-                                wScan = keyData[s].scanCode,
-                                dwFlags = keyData[s].downFlags,
-                                time = 0,
-                                dwExtraInfo = IntPtr.Zero
-                            }
-                        }
-                    };
-                }
-                SendInput((uint)inputsDown.Length, inputsDown, Marshal.SizeOf(typeof(INPUT)));
+                foreach (var vk in virtualKeys)
+                    MacroKids.Core.Interop.NativeInput.KeyDown(vk);
 
                 await Task.Delay(ms);
 
-                var inputsUp = new INPUT[keyData.Count];
-                for (int s = 0; s < keyData.Count; s++)
-                {
-                    var data = keyData[keyData.Count - 1 - s];
-                    inputsUp[s] = new INPUT
-                    {
-                        type = INPUT_KEYBOARD,
-                        u = new InputUnion
-                        {
-                            ki = new KEYBDINPUT
-                            {
-                                wVk = data.virtualKey,
-                                wScan = data.scanCode,
-                                dwFlags = data.upFlags,
-                                time = 0,
-                                dwExtraInfo = IntPtr.Zero
-                            }
-                        }
-                    };
-                }
-                SendInput((uint)inputsUp.Length, inputsUp, Marshal.SizeOf(typeof(INPUT)));
+                for (int k = virtualKeys.Count - 1; k >= 0; k--)
+                    MacroKids.Core.Interop.NativeInput.KeyUp(virtualKeys[k]);
             }
         }
 

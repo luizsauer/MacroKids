@@ -81,4 +81,79 @@ public static class KeyboardMapper
             _ => 0
         };
     }
+
+    /// <summary>Maps a Windows virtual-key code to the canonical name used by MacroKids blocks.</summary>
+    public static string GetKeyName(byte virtualKey)
+    {
+        if (virtualKey >= 0x41 && virtualKey <= 0x5A)
+            return ((char)virtualKey).ToString();
+        if (virtualKey >= 0x30 && virtualKey <= 0x39)
+            return ((char)virtualKey).ToString();
+        if (virtualKey >= 0x70 && virtualKey <= 0x7B)
+            return "F" + (virtualKey - 0x6F);
+
+        return virtualKey switch
+        {
+            0x08 => "Backspace",
+            0x09 => "Tab",
+            0x0D => "Enter",
+            0x10 => "Shift",
+            0x11 => "Ctrl",
+            0x12 => "Alt",
+            0x1B => "Esc",
+            0x20 => "Space",
+            0x21 => "PageUp",
+            0x22 => "PageDown",
+            0x23 => "End",
+            0x24 => "Home",
+            0x25 => "Left",
+            0x26 => "Up",
+            0x27 => "Right",
+            0x28 => "Down",
+            0x2C => "PrintScreen",
+            0x2D => "Insert",
+            0x2E => "Delete",
+            0x5B => "Win",
+            0x5C => "RWin",
+            0x5D => "Apps",
+            0x60 => "Numpad0",
+            0x61 => "Numpad1",
+            0x62 => "Numpad2",
+            0x63 => "Numpad3",
+            0x64 => "Numpad4",
+            0x65 => "Numpad5",
+            0x66 => "Numpad6",
+            0x67 => "Numpad7",
+            0x68 => "Numpad8",
+            0x69 => "Numpad9",
+            0x6A => "Multiply",
+            0x6B => "Add",
+            0x6D => "Subtract",
+            0x6E => "Decimal",
+            0x6F => "Divide",
+            0x90 => "NumLock",
+            0x91 => "ScrollLock",
+            0xA0 => "Shift",
+            0xA1 => "RShift",
+            0xA2 => "Ctrl",
+            0xA3 => "RCtrl",
+            0xA4 => "Alt",
+            0xA5 => "RAlt",
+            0xBA => "Oem1",
+            0xBB => "OemPlus",
+            0xBC => "OemComma",
+            0xBD => "OemMinus",
+            0xBE => "OemPeriod",
+            0xBF => "Oem2",
+            0xC0 => "Oem3",
+            0xDB => "Oem4",
+            0xDC => "Oem5",
+            0xDD => "Oem6",
+            0xDE => "Oem7",
+            0xDF => "Oem8",
+            _ => string.Empty
+        };
+    }
+
+    public const int HoldThresholdMs = 250;
 }

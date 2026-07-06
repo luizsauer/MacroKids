@@ -104,13 +104,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         foreach (var nodeMeta in _nodeRegistry.GetAll())
             AvailableNodes.Add(nodeMeta);
 
-        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabMyProject", "My Project"), canClose: true));
-        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabNewAutomation", "New Automation")));
+        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabNewAutomation", "New Automation"), canClose: false));
         SelectedPage = Pages[0];
-
-        CanvasViewModel.AddNode("mouse.move", 100, 100);
-        CanvasViewModel.AddNode("mouse.left_click", 350, 150);
-        CanvasViewModel.AddNode("flow.wait", 100, 300);
 
         UpdateWindowTitle();
         ApplyTheme(isDarkTheme: true);
@@ -126,8 +121,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void UpdateWindowTitle()
     {
-        var pageTitle = SelectedPage?.Title ?? GetText("TabMyProject", "My Project");
-        WindowTitle = $"MacroKids - {pageTitle} - v0.1.4-dev";
+        var pageTitle = SelectedPage?.Title ?? GetText("TabNewAutomation", "New Automation");
+        WindowTitle = $"MacroKids - {pageTitle} - v0.1.5-dev";
     }
 
     public ImageSource ThemeIcon => LoadThemeIcon();
@@ -409,7 +404,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         StatusMessage = GetText("StatusSaving", "Saving project...");
         var doc = CanvasViewModel.ToFlowDocument();
+        var projectName = System.IO.Path.GetFileNameWithoutExtension(dialog.FileName);
+        doc.Name = projectName;
         await MacroKids.Core.Serialization.ProjectPackager.PackAsync(doc, dialog.FileName);
+
+        if (SelectedPage is not null)
+        {
+            SelectedPage.Title = projectName;
+            UpdateWindowTitle();
+        }
+
         StatusMessage = GetText("StatusProjectSaved", "Project saved successfully!");
     }
 
@@ -540,8 +544,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ExecutionLogsText));
         IsLogExpanded = true;
 
+        var mainWindow = Application.Current.MainWindow;
+        var previousWindowState = mainWindow?.WindowState ?? WindowState.Normal;
+
         try
         {
+            // Minimiza para que cliques/teclas atinjam o app alvo, não o MacroKids
+            if (mainWindow != null)
+            {
+                mainWindow.WindowState = WindowState.Minimized;
+                await Task.Delay(500);
+            }
+
             var document = CanvasViewModel.ToFlowDocument();
             var eventBus = new EventBus();
             _activeExecutor = new FlowExecutor(_nodeRegistry, eventBus)
@@ -602,7 +616,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 ? "Executando em modo debug..."
                 : GetText("StatusRunning", "Running automation...");
 
-            await _activeExecutor.RunAsync(document);
+            // Executa fora da UI thread para não bloquear injeção de input
+            await Task.Run(async () =>
+            {
+                await _activeExecutor.RunAsync(document).ConfigureAwait(false);
+            }).ConfigureAwait(true);
             StatusMessage = GetText("StatusSuccess", "Execution finished successfully!");
         }
         catch (Exception ex)
@@ -615,6 +633,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
             foreach (var n in CanvasViewModel.Nodes)
             {
                 n.IsExecuting = false;
+            }
+
+            if (mainWindow != null)
+            {
+                mainWindow.WindowState = previousWindowState;
+                mainWindow.Activate();
             }
         }
     }

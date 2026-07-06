@@ -71,7 +71,7 @@ public sealed partial class NodeViewModel : ObservableObject
         Comment    = node.Comment;
 
         foreach (var kv in node.PinValues)
-            PinValues[kv.Key] = kv.Value;
+            PinValues[kv.Key] = MacroKids.Core.Services.PinValueReader.Unbox(kv.Value) ?? kv.Value;
             
         // Populate default values from pins metadata if not set
         foreach (var pin in metadata.Pins.Where(p => p.Direction == PinDirection.Input))

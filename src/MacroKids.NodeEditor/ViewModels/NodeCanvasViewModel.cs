@@ -30,7 +30,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             Description = string.Empty,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            EngineVersion = "0.1.4-dev"
+            EngineVersion = "0.1.5-dev"
         };
 
         _history.HistoryChanged += (_, _) =>
@@ -419,7 +419,9 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         TypeId = node.TypeId,
         X = node.X,
         Y = node.Y,
-        PinValues = new Dictionary<string, object?>(node.PinValues),
+        PinValues = node.PinValues.ToDictionary(
+            kv => kv.Key,
+            kv => MacroKids.Core.Services.PinValueReader.Unbox(kv.Value) ?? kv.Value),
         Comment = node.Comment,
         IsDisabled = node.IsDisabled
     };
@@ -434,6 +436,14 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     };
 
     private void TouchDocument() => _document.UpdatedAt = DateTime.UtcNow;
+
+    private static Dictionary<string, object?> ImportPins(int delayMs, params (string Key, object? Value)[] values)
+    {
+        var pins = new Dictionary<string, object?> { ["delay"] = Math.Max(0, delayMs) };
+        foreach (var (key, value) in values)
+            pins[key] = value;
+        return pins;
+    }
 
     public void ImportRecordedActions(List<RecordedAction> actions)
     {
@@ -452,7 +462,10 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         for (int i = 0; i < actions.Count; i++)
         {
             var act = actions[i];
-            bool isPrintableChar = act.Type == ActionType.KeyPress && (act.KeyName.Length == 1 || act.KeyName == "Space");
+            bool isPrintableChar = act.Type == ActionType.KeyPress
+                && act.Y < MacroKids.Core.Services.KeyboardMapper.HoldThresholdMs
+                && !act.KeyName.StartsWith("WINDOW_FOCUS:", StringComparison.Ordinal)
+                && (act.KeyName.Length == 1 || act.KeyName == "Space");
 
             if (isPrintableChar)
             {
@@ -483,14 +496,14 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         {
             var act = optimized[i];
             
-            // Se for segurar tecla (Y >= 300ms)
-            if (act.Type == ActionType.KeyPress && act.Y >= 300)
+            // Se for segurar tecla
+            if (act.Type == ActionType.KeyPress && act.Y >= MacroKids.Core.Services.KeyboardMapper.HoldThresholdMs)
             {
                 // Verifica se o próximo evento também é um segurar tecla que começa logo em seguida (DelayMs pequeno, ex: < 250ms)
                 if (i + 1 < optimized.Count)
                 {
                     var next = optimized[i + 1];
-                    if (next.Type == ActionType.KeyPress && next.Y >= 300 && next.DelayMs <= 250)
+                    if (next.Type == ActionType.KeyPress && next.Y >= MacroKids.Core.Services.KeyboardMapper.HoldThresholdMs && next.DelayMs <= 250)
                     {
                         // Mescla as duas teclas!
                         string mergedKeys = act.KeyName + "+" + next.KeyName;
@@ -541,39 +554,6 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
         foreach (var action in finalOptimized)
         {
-            // Only create wait blocks for delays >= 800ms
-            if (action.DelayMs >= 800)
-            {
-                var waitNode = new FlowNode
-                {
-                    InstanceId = Guid.NewGuid(),
-                    TypeId = "flow.wait",
-                    X = currentX,
-                    Y = currentY,
-                    PinValues = new Dictionary<string, object?> { ["ms"] = action.DelayMs }
-                };
-                _document.Nodes.Add(waitNode);
-
-                if (previousDoneNodeId != null)
-                {
-                    _document.Connections.Add(new FlowConnection
-                    {
-                        Id = Guid.NewGuid(),
-                        SourceNodeId = previousDoneNodeId.Value,
-                        SourcePinId = "done",
-                        TargetNodeId = waitNode.InstanceId,
-                        TargetPinId = "in"
-                    });
-                }
-                previousDoneNodeId = waitNode.InstanceId;
-                currentX += 300;
-                if (currentX > 1500)
-                {
-                    currentX = 100;
-                    currentY += 180;
-                }
-            }
-
             if (action.Type == ActionType.Move)
             {
                 var moveNode = new FlowNode
@@ -582,7 +562,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                     TypeId = "mouse.move",
                     X = currentX,
                     Y = currentY,
-                    PinValues = new Dictionary<string, object?> { ["x"] = action.X, ["y"] = action.Y }
+                    PinValues = ImportPins(action.DelayMs, ("x", action.X), ("y", action.Y))
                 };
                 _document.Nodes.Add(moveNode);
 
@@ -614,7 +594,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                         TypeId = typeId,
                         X = currentX,
                         Y = currentY,
-                        PinValues = new Dictionary<string, object?> { ["button"] = btn }
+                        PinValues = ImportPins(action.DelayMs, ("button", btn))
                     };
                     _document.Nodes.Add(btnNode);
 
@@ -641,7 +621,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                         TypeId = clickTypeId,
                         X = currentX,
                         Y = currentY,
-                        PinValues = new Dictionary<string, object?> { ["x"] = action.X, ["y"] = action.Y }
+                        PinValues = ImportPins(action.DelayMs, ("x", action.X), ("y", action.Y))
                     };
                     _document.Nodes.Add(clickNode);
 
@@ -672,7 +652,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                         TypeId = "window.focus",
                         X = currentX,
                         Y = currentY,
-                        PinValues = new Dictionary<string, object?> { ["title"] = winTitle, ["action"] = "Focus/Restore" }
+                        PinValues = ImportPins(action.DelayMs, ("title", winTitle), ("action", "Focus/Restore"))
                     };
                     _document.Nodes.Add(focusNode);
 
@@ -689,8 +669,8 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                     }
                     previousDoneNodeId = focusNode.InstanceId;
                 }
-                // Se o tempo de retencao (Y) for maior/igual a 300ms, cria um bloco Hold Key
-                else if (action.Y >= 300)
+                // Se o tempo de retencao atingir o limiar, cria um bloco Hold Key
+                else if (action.Y >= MacroKids.Core.Services.KeyboardMapper.HoldThresholdMs)
                 {
                     var holdNode = new FlowNode
                     {
@@ -698,7 +678,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                         TypeId = "keyboard.hold_key",
                         X = currentX,
                         Y = currentY,
-                        PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["ms"] = action.Y, ["times"] = 1 }
+                        PinValues = ImportPins(action.DelayMs, ("key", action.KeyName), ("ms", action.Y), ("times", 1))
                     };
                     _document.Nodes.Add(holdNode);
 
@@ -717,12 +697,10 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                 }
                 else
                 {
-                    bool isControlKey = action.KeyName == "Enter" || action.KeyName == "Space" || action.KeyName == "Backspace" ||
-                                        action.KeyName == "Tab" || action.KeyName == "Esc" || action.KeyName == "Up" ||
-                                        action.KeyName == "Down" || action.KeyName == "Left" || action.KeyName == "Right" ||
-                                        action.KeyName == "Delete";
+                    bool looksLikeTypedText = action.KeyName.Length > 1
+                        && action.KeyName.All(c => c == ' ' || (char.IsLetter(c) && char.IsLower(c)));
 
-                    if (action.KeyName.Length > 1 && !isControlKey)
+                    if (looksLikeTypedText)
                     {
                         var typeTextNode = new FlowNode
                         {
@@ -730,7 +708,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                             TypeId = "keyboard.type_text",
                             X = currentX,
                             Y = currentY,
-                            PinValues = new Dictionary<string, object?> { ["text"] = action.KeyName }
+                            PinValues = ImportPins(action.DelayMs, ("text", action.KeyName))
                         };
                         _document.Nodes.Add(typeTextNode);
 
@@ -755,7 +733,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                             TypeId = "keyboard.press_key",
                             X = currentX,
                             Y = currentY,
-                            PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["times"] = 1 }
+                            PinValues = ImportPins(action.DelayMs, ("key", action.KeyName), ("times", 1))
                         };
                         _document.Nodes.Add(keyNode);
 
