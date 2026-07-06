@@ -4,6 +4,11 @@
              xmlns:local="clr-namespace:MacroKids.UI"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MacroKids.NodeEditor;component/Themes/ControlStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

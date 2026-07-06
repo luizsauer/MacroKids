@@ -18,6 +18,17 @@ public partial class NodeEditorControl : UserControl
         InitializeComponent();
     }
 
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+
+        if (e.Key == Key.Delete && DataContext is NodeCanvasViewModel canvasVm)
+        {
+            canvasVm.DeleteSelectedCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private void Node_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left && sender is Border border && border.DataContext is NodeViewModel nodeVm)

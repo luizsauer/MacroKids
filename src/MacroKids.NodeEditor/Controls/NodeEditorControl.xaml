@@ -17,7 +17,8 @@
     <local:NodeCanvas x:Name="EditorCanvas" 
                       Zoom="{Binding Zoom}"
                       OffsetX="{Binding OffsetX}"
-                      OffsetY="{Binding OffsetY}">
+                      OffsetY="{Binding OffsetY}"
+                      IsGridVisible="{Binding IsGridVisible}">
                       
       <!-- Connections (Rendered Behind Nodes) -->
       <ItemsControl ItemsSource="{Binding Connections}">
@@ -66,26 +67,8 @@
               <Border.Style>
                 <Style TargetType="Border">
                   <Setter Property="BorderBrush" Value="Transparent" />
-                  <Setter Property="Background" Value="#3B82F6" />
+                  <Setter Property="Background" Value="{Binding Metadata.CategoryColor}" />
                   <Style.Triggers>
-                    <!-- Background colored by Category matching Layout MacroKids.png -->
-                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Keyboard">
-                      <Setter Property="Background" Value="#2563EB" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Mouse">
-                      <Setter Property="Background" Value="#16A34A" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Loops">
-                      <Setter Property="Background" Value="#15803D" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Events">
-                      <Setter Property="Background" Value="#DB2777" />
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding Metadata.Category}" Value="Variables">
-                      <Setter Property="Background" Value="#7C3AED" />
-                    </DataTrigger>
-                    
-                    <!-- Selection and Execution Glowing Outlines -->
                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
                       <Setter Property="BorderBrush" Value="#FFFFFF" />
                     </DataTrigger>

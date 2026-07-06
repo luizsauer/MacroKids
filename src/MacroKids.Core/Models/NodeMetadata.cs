@@ -30,6 +30,29 @@ public class NodeMetadata
     /// </summary>
     public string? ColorOverride { get; init; }
 
+    /// <summary>
+    /// Default hex color used by the UI for this category.
+    /// </summary>
+    public string CategoryColor => Category switch
+    {
+        NodeCategory.Events => "#EC4899",
+        NodeCategory.Keyboard => "#3B82F6",
+        NodeCategory.Mouse => "#22C55E",
+        NodeCategory.Gamepad => "#F97316",
+        NodeCategory.Variables => "#8B5CF6",
+        NodeCategory.Logic => "#0EA5E9",
+        NodeCategory.Loops => "#EAB308",
+        NodeCategory.Images => "#6366F1",
+        NodeCategory.Ocr => "#14B8A6",
+        NodeCategory.Ai => "#A855F7",
+        NodeCategory.Window => "#38BDF8",
+        NodeCategory.File => "#F59E0B",
+        NodeCategory.Network => "#F97316",
+        NodeCategory.System => "#94A3B8",
+        NodeCategory.Plugin => "#CBD5E1",
+        _ => "#3B82F6"
+    };
+
     /// <summary>All input and output pins, in the order they should appear on the node.</summary>
     public required IReadOnlyList<NodePin> Pins { get; init; }
 

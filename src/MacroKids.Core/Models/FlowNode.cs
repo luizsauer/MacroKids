@@ -23,7 +23,7 @@ public class FlowNode
     /// Serialized configuration values keyed by pin Id (only for input pins with static values).
     /// When a pin is connected to another node's output, this value is ignored at runtime.
     /// </summary>
-    public Dictionary<string, object?> PinValues { get; init; } = [];
+    public Dictionary<string, object?> PinValues { get; set; } = [];
 
     /// <summary>Optional user-set label/comment displayed above the node.</summary>
     public string? Comment { get; set; }

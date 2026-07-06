@@ -70,8 +70,9 @@ public sealed partial class NodeViewModel : ObservableObject
         TypeId     = Metadata.TypeId,
         X          = X,
         Y          = Y,
+        PinValues  = new Dictionary<string, object?>(PinValues),
+        Comment    = Comment,
         IsDisabled = IsDisabled,
-        Comment    = Comment
     };
 
     public Point GetInputPinPoint(string pinId)

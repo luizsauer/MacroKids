@@ -28,6 +28,10 @@ public class NodeCanvas : Canvas
         DependencyProperty.Register(nameof(OffsetY), typeof(double), typeof(NodeCanvas), 
             new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender, OnOffsetChanged));
 
+    public static readonly DependencyProperty IsGridVisibleProperty =
+        DependencyProperty.Register(nameof(IsGridVisible), typeof(bool), typeof(NodeCanvas),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+
     public double Zoom
     {
         get => (double)GetValue(ZoomProperty);
@@ -44,6 +48,12 @@ public class NodeCanvas : Canvas
     {
         get => (double)GetValue(OffsetYProperty);
         set => SetValue(OffsetYProperty, value);
+    }
+
+    public bool IsGridVisible
+    {
+        get => (bool)GetValue(IsGridVisibleProperty);
+        set => SetValue(IsGridVisibleProperty, value);
     }
 
     public NodeCanvas()
@@ -135,8 +145,10 @@ public class NodeCanvas : Canvas
 
     protected override void OnRender(DrawingContext dc)
     {
-        // Draw background grid dots
-        DrawGridDots(dc);
+        if (IsGridVisible)
+        {
+            DrawGridDots(dc);
+        }
 
         base.OnRender(dc);
     }

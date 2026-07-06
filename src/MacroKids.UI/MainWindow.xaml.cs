@@ -22,6 +22,39 @@ public partial class MainWindow : Window
         DataContext = new ViewModels.MainWindowViewModel();
     }
 
+    private void SearchCanvas_Click(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    private void ConnectLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ViewModels.MainWindowViewModel vm)
+        {
+            vm.StatusMessage = "Use os pinos no canvas para conectar blocos.";
+        }
+    }
+
+    private void Fullscreen_Click(object sender, RoutedEventArgs e)
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.SingleBorderWindow;
+        }
+        else
+        {
+            WindowStyle = WindowStyle.None;
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    private void LockCanvas_Click(object sender, RoutedEventArgs e)
+    {
+        EditorView.IsEnabled = !EditorView.IsEnabled;
+    }
+
     private void Language_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DataContext == null) return;

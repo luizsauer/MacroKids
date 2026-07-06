@@ -1,5 +1,5 @@
-using System.IO;
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MacroKids.Core.Commands;
@@ -17,42 +17,28 @@ namespace MacroKids.UI.ViewModels;
 public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly INodeRegistry _nodeRegistry;
-    private readonly CommandHistory _commandHistory;
+    private FlowExecutor? _activeExecutor;
+    private NodeCanvasViewModel? _observedCanvas;
 
-    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.1 (Dev)";
+    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.2-dev";
     [ObservableProperty] private string _statusMessage = "Pronto";
-    [ObservableProperty] private string _selectedModule = "Blocks"; // Default module selected
-    [ObservableProperty] private string _searchText = string.Empty;  // Filter search text
-    
-    public NodeCanvasViewModel CanvasViewModel { get; }
+    [ObservableProperty] private string _selectedModule = "Blocks";
+    [ObservableProperty] private string _searchText = string.Empty;
+    [ObservableProperty] private bool _isDarkTheme = true;
+
+    public ObservableCollection<ProjectPageViewModel> Pages { get; } = [];
     public ObservableCollection<NodeMetadata> AvailableNodes { get; } = [];
 
-    // Filtered list of nodes to display on block list view
-    public IEnumerable<IGrouping<NodeCategory, NodeMetadata>> GroupedNodes
-    {
-        get
-        {
-            var query = _nodeRegistry.GetAll();
-            if (!string.IsNullOrWhiteSpace(SearchText))
-            {
-                query = query.Where(n => n.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) || 
-                                         n.Description.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
-            }
-            return query.GroupBy(n => n.Category);
-        }
-    }
+    public NodeCanvasViewModel CanvasViewModel => SelectedPage?.CanvasViewModel ?? Pages.First().CanvasViewModel;
+    public NodeViewModel? SelectedNode => CanvasViewModel.SelectedNode;
 
-    // Trigger UI updates when SearchText changes
-    partial void OnSearchTextChanged(string value)
-    {
-        OnPropertyChanged(nameof(GroupedNodes));
-    }
+    [ObservableProperty] private ProjectPageViewModel? _selectedPage;
+
+    public IEnumerable<IGrouping<NodeCategory, NodeMetadata>> GroupedNodes => GetGroupedNodes();
 
     public MainWindowViewModel()
     {
         var registry = new NodeRegistry();
-        
-        // Register Real Nodes
         registry.Register(MoveMouseMetadata.Instance, new MoveMouseExecutor());
         registry.Register(LeftClickMetadata.Instance, new LeftClickExecutor());
         registry.Register(RightClickMetadata.Instance, new RightClickExecutor());
@@ -61,81 +47,197 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(WaitMetadata.Instance, new WaitExecutor());
 
         _nodeRegistry = registry;
-        _commandHistory = new CommandHistory();
-        
-        CanvasViewModel = new NodeCanvasViewModel(_nodeRegistry, _commandHistory);
 
-        // Load nodes into catalog
         foreach (var nodeMeta in _nodeRegistry.GetAll())
-        {
             AvailableNodes.Add(nodeMeta);
-        }
 
-        // Add start templates to visual editor
+        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabMyProject", "My Project"), canClose: false));
+        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabNewAutomation", "New Automation")));
+        SelectedPage = Pages[0];
+
         CanvasViewModel.AddNode("mouse.move", 100, 100);
         CanvasViewModel.AddNode("mouse.left_click", 350, 150);
         CanvasViewModel.AddNode("flow.wait", 100, 300);
+
+        UpdateWindowTitle();
+        ApplyTheme(isDarkTheme: true);
+    }
+
+    private static string GetText(string key, string fallback)
+    {
+        return LocalizationManager.Instance.Translations.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value)
+            ? value
+            : fallback;
+    }
+
+    private void UpdateWindowTitle()
+    {
+        var pageTitle = SelectedPage?.Title ?? GetText("TabMyProject", "My Project");
+        WindowTitle = $"MacroKids - {pageTitle} - v0.1.2-dev";
+    }
+
+    partial void OnSearchTextChanged(string value) => OnPropertyChanged(nameof(GroupedNodes));
+    partial void OnSelectedModuleChanged(string value) => OnPropertyChanged(nameof(GroupedNodes));
+
+    partial void OnSelectedPageChanged(ProjectPageViewModel? oldValue, ProjectPageViewModel? newValue)
+    {
+        if (oldValue is not null)
+            oldValue.IsSelected = false;
+
+        if (_observedCanvas is not null)
+        {
+            _observedCanvas.PropertyChanged -= ObservedCanvas_PropertyChanged;
+            _observedCanvas = null;
+        }
+
+        if (newValue is not null)
+        {
+            newValue.IsSelected = true;
+            _observedCanvas = newValue.CanvasViewModel;
+            _observedCanvas.PropertyChanged += ObservedCanvas_PropertyChanged;
+        }
+
+        OnPropertyChanged(nameof(CanvasViewModel));
+        OnPropertyChanged(nameof(SelectedNode));
+        UpdateWindowTitle();
+    }
+
+    private void ObservedCanvas_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(NodeCanvasViewModel.SelectedNode))
+            OnPropertyChanged(nameof(SelectedNode));
+    }
+
+    private IEnumerable<IGrouping<NodeCategory, NodeMetadata>> GetGroupedNodes()
+    {
+        IEnumerable<NodeMetadata> query = _nodeRegistry.GetAll();
+
+        query = SelectedModule switch
+        {
+            "Variables" => query.Where(n => n.Category == NodeCategory.Variables),
+            "Functions" => query.Where(n => n.Category is NodeCategory.Logic or NodeCategory.Loops),
+            "Images" => query.Where(n => n.Category == NodeCategory.Images),
+            "OCR" => query.Where(n => n.Category == NodeCategory.Ocr),
+            "AI" => query.Where(n => n.Category == NodeCategory.Ai),
+            "Events" => query.Where(n => n.Category == NodeCategory.Events),
+            "Settings" => query.Where(n => n.Category is NodeCategory.System or NodeCategory.Window or NodeCategory.File or NodeCategory.Network),
+            _ => query
+        };
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            query = query.Where(n =>
+                n.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                n.Description.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                n.TypeId.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return query
+            .GroupBy(n => n.Category)
+            .OrderBy(g => g.Key);
     }
 
     [RelayCommand]
-    private void AddNodeToCanvas(NodeMetadata metadata)
+    private void AddPage()
     {
-        if (metadata != null)
-        {
-            CanvasViewModel.AddNode(metadata.TypeId, 150, 150);
-            StatusMessage = $"Adicionado bloco: {metadata.Name}";
-        }
+        var index = Pages.Count(p => p.CanClose) + 1;
+        var title = index == 1
+            ? GetText("TabNewAutomation", "New Automation")
+            : $"{GetText("TabNewAutomation", "New Automation")} {index}";
+
+        var page = new ProjectPageViewModel(_nodeRegistry, title);
+        Pages.Add(page);
+        SelectedPage = page;
+        StatusMessage = $"{title} criado.";
+    }
+
+    [RelayCommand]
+    private void ClosePage(ProjectPageViewModel? page)
+    {
+        if (page is null || !page.CanClose || Pages.Count == 1)
+            return;
+
+        var index = Pages.IndexOf(page);
+        Pages.Remove(page);
+
+        if (SelectedPage == page)
+            SelectedPage = Pages[Math.Max(0, index - 1)];
+
+        StatusMessage = $"{page.Title} fechado.";
+    }
+
+    [RelayCommand]
+    private void SelectPage(ProjectPageViewModel? page)
+    {
+        if (page is null || SelectedPage == page)
+            return;
+
+        SelectedPage = page;
+    }
+
+    [RelayCommand]
+    private void AddNodeToCanvas(NodeMetadata? metadata)
+    {
+        if (metadata is null)
+            return;
+
+        CanvasViewModel.AddNode(metadata.TypeId, 150, 150);
+        StatusMessage = $"Adicionado bloco: {metadata.Name}";
     }
 
     [RelayCommand]
     private void SelectModule(string moduleName)
     {
         if (!string.IsNullOrWhiteSpace(moduleName))
-        {
             SelectedModule = moduleName;
-        }
     }
 
     [RelayCommand]
     private void ToggleTheme()
     {
-        var app = System.Windows.Application.Current;
-        if (app == null) return;
+        var app = Application.Current;
+        if (app is null)
+            return;
 
-        // Clean any existing theme resources to prevent duplicates
-        var activeTheme = app.Resources.MergedDictionaries
-            .FirstOrDefault(d => d.Source != null && (d.Source.OriginalString.Contains("LightTheme.xaml") || d.Source.OriginalString.Contains("DarkTheme.xaml")));
+        ApplyTheme(!IsDarkTheme);
+        StatusMessage = IsDarkTheme ? "Tema escuro ativado." : "Tema claro ativado.";
+    }
 
-        bool isCurrentlyDark = activeTheme != null && activeTheme.Source.OriginalString.Contains("DarkTheme.xaml");
+    private void ApplyTheme(bool isDarkTheme)
+    {
+        var app = Application.Current;
+        if (app is null)
+            return;
 
-        if (activeTheme != null)
+        var dictionaries = app.Resources.MergedDictionaries;
+        var existing = dictionaries.FirstOrDefault(d =>
+            d.Source != null &&
+            (d.Source.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase) ||
+             d.Source.OriginalString.Contains("LightTheme.xaml", StringComparison.OrdinalIgnoreCase)));
+
+        if (existing is not null)
+            dictionaries.Remove(existing);
+
+        dictionaries.Add(new ResourceDictionary
         {
-            app.Resources.MergedDictionaries.Remove(activeTheme);
-        }
+            Source = new Uri(isDarkTheme
+                ? "pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml"
+                : "pack://application:,,,/MacroKids.NodeEditor;component/Themes/LightTheme.xaml")
+        });
 
-        var newTheme = new System.Windows.ResourceDictionary();
-        if (isCurrentlyDark)
-        {
-            newTheme.Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/LightTheme.xaml");
-            StatusMessage = "Tema Claro Ativado!";
-        }
-        else
-        {
-            newTheme.Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml");
-            StatusMessage = "Tema Escuro Ativado!";
-        }
-
-        app.Resources.MergedDictionaries.Add(newTheme);
+        IsDarkTheme = isDarkTheme;
     }
 
     [RelayCommand]
     private void ChangeLanguage(string cultureCode)
     {
-        if (!string.IsNullOrWhiteSpace(cultureCode))
-        {
-            LocalizationManager.Instance.LoadCulture(cultureCode);
-            StatusMessage = $"Idioma alterado: {cultureCode}";
-        }
+        if (string.IsNullOrWhiteSpace(cultureCode))
+            return;
+
+        LocalizationManager.Instance.LoadCulture(cultureCode);
+        OnPropertyChanged(nameof(GroupedNodes));
+        UpdateWindowTitle();
+        StatusMessage = $"Idioma alterado: {cultureCode}";
     }
 
     [RelayCommand]
@@ -147,23 +249,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
             FileName = "meu_projeto.mkproject"
         };
 
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                StatusMessage = "Salvando projeto...";
-                var doc = CanvasViewModel.ToFlowDocument();
-                
-                // Pack directly using Core ProjectPackager file helper
-                await MacroKids.Core.Serialization.ProjectPackager.PackAsync(doc, dialog.FileName);
-                
-                StatusMessage = "Projeto salvo com sucesso!";
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Erro ao salvar projeto: {ex.Message}";
-            }
-        }
+        if (dialog.ShowDialog() != true)
+            return;
+
+        StatusMessage = GetText("StatusSaving", "Saving project...");
+        var doc = CanvasViewModel.ToFlowDocument();
+        await MacroKids.Core.Serialization.ProjectPackager.PackAsync(doc, dialog.FileName);
+        StatusMessage = "Projeto salvo com sucesso!";
     }
 
     [RelayCommand]
@@ -174,65 +266,79 @@ public sealed partial class MainWindowViewModel : ObservableObject
             Filter = "Projeto MacroKids (*.mkproject)|*.mkproject"
         };
 
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                StatusMessage = "Carregando projeto...";
-                
-                // Unpack directly using Core ProjectPackager file helper
-                var doc = await MacroKids.Core.Serialization.ProjectPackager.UnpackAsync(dialog.FileName);
-                
-                if (doc != null)
-                {
-                    CanvasViewModel.LoadDocument(doc);
-                    StatusMessage = $"Projeto '{doc.Name}' carregado!";
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Erro ao carregar projeto: {ex.Message}";
-            }
-        }
+        if (dialog.ShowDialog() != true)
+            return;
+
+        StatusMessage = GetText("StatusLoading", "Loading project...");
+        var doc = await MacroKids.Core.Serialization.ProjectPackager.UnpackAsync(dialog.FileName);
+        CanvasViewModel.LoadDocument(doc);
+        StatusMessage = $"Projeto '{doc.Name}' carregado!";
     }
 
     [RelayCommand]
     private async Task RunFlowAsync()
     {
+        await ExecuteFlowAsync(stepDelayMs: 0);
+    }
+
+    [RelayCommand]
+    private async Task DebugFlowAsync()
+    {
+        await ExecuteFlowAsync(stepDelayMs: 200);
+    }
+
+    [RelayCommand]
+    private void StopFlow()
+    {
+        _activeExecutor?.Stop();
+        StatusMessage = "Execução interrompida.";
+    }
+
+    [RelayCommand]
+    private void ExportProject()
+    {
+        SaveProjectCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private void ToggleCanvasGrid()
+    {
+        CanvasViewModel.ToggleGridCommand.Execute(null);
+    }
+
+    private async Task ExecuteFlowAsync(int stepDelayMs)
+    {
         try
         {
-            StatusMessage = "Executando automação...";
-            
-            // 1. Get graph structure
-            var doc = CanvasViewModel.ToFlowDocument();
-            
-            // 2. Setup execution engine dependencies
-            var eventBus = new MacroKids.Runtime.EventBus();
-            var execContext = new MacroKids.Runtime.ExecutionContext(eventBus, CancellationToken.None);
-            
-            // Subscribe to execution log events to display on status bar
+            var document = CanvasViewModel.ToFlowDocument();
+            var eventBus = new EventBus();
+            _activeExecutor = new FlowExecutor(_nodeRegistry, eventBus)
+            {
+                StepDelayMs = stepDelayMs
+            };
+
             eventBus.Subscribe<MacroKids.Core.Events.NodeStartedEvent>(e =>
             {
-                // System.Windows Dispatcher is used to safely update UI thread from execution thread
-                App.Current.Dispatcher.Invoke(() =>
+                Application.Current.Dispatcher.Invoke(() =>
                 {
                     StatusMessage = $"Executando bloco: {e.TypeId}...";
                 });
             });
 
-            var executor = new MacroKids.Runtime.FlowExecutor(_nodeRegistry, eventBus);
-            
-            // 3. Start simulation in a background task to keep UI responsive
-            await Task.Run(async () =>
-            {
-                await executor.RunAsync(doc);
-            });
-            
-            StatusMessage = "Execução concluída com sucesso!";
+            StatusMessage = stepDelayMs > 0
+                ? "Executando em modo debug..."
+                : GetText("StatusRunning", "Running automation...");
+
+            await _activeExecutor.RunAsync(document);
+            StatusMessage = GetText("StatusSuccess", "Execution finished successfully!");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Erro na execução: {ex.Message}";
+            StatusMessage = string.Format(GetText("StatusError", "Execution error: {0}"), ex.Message);
+        }
+        finally
+        {
+            _activeExecutor = null;
         }
     }
 }

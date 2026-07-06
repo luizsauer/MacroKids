@@ -16,11 +16,21 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 {
     private readonly INodeRegistry _registry;
     private readonly CommandHistory _history;
+    private FlowDocument _document;
 
-    public NodeCanvasViewModel(INodeRegistry registry, CommandHistory history)
+    public NodeCanvasViewModel(INodeRegistry registry, CommandHistory? history = null)
     {
         _registry = registry;
-        _history  = history;
+        _history = history ?? new CommandHistory();
+        _document = new FlowDocument
+        {
+            Id = Guid.NewGuid(),
+            Name = "Untitled",
+            Description = string.Empty,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            EngineVersion = "0.1.2-dev"
+        };
 
         _history.HistoryChanged += (_, _) =>
         {
@@ -31,14 +41,15 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
     // ── Collections ───────────────────────────────────────────────────────────
 
-    public ObservableCollection<NodeViewModel>      Nodes       { get; } = [];
+    public ObservableCollection<NodeViewModel> Nodes { get; } = [];
     public ObservableCollection<ConnectionViewModel> Connections { get; } = [];
 
     // ── Viewport ──────────────────────────────────────────────────────────────
 
-    [ObservableProperty] private double _zoom      = 1.0;
-    [ObservableProperty] private double _offsetX   = 0.0;
-    [ObservableProperty] private double _offsetY   = 0.0;
+    [ObservableProperty] private double _zoom = 1.0;
+    [ObservableProperty] private double _offsetX;
+    [ObservableProperty] private double _offsetY;
+    [ObservableProperty] private bool _isGridVisible = true;
 
     public const double MinZoom = 0.1;
     public const double MaxZoom = 5.0;
@@ -71,45 +82,31 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         var flowNode = new FlowNode
         {
             InstanceId = Guid.NewGuid(),
-            TypeId     = typeId,
-            X          = canvasX,
-            Y          = canvasY
+            TypeId = typeId,
+            X = canvasX,
+            Y = canvasY
         };
 
-        var document = ToFlowDocument(); // snapshot of current state
-        var cmd      = new CreateNodeCommand(document, flowNode);
-
-        _history.Execute(cmd);
-
-        // Sync VM from updated document
-        var vm = new NodeViewModel(flowNode, metadata);
-        Nodes.Add(vm);
-        SelectNode(vm);
+        _history.Execute(new CreateNodeCommand(_document, flowNode));
+        TouchDocument();
+        RebuildFromDocument(flowNode.InstanceId);
     }
 
     /// <summary>Delete currently selected node.</summary>
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DeleteSelected()
     {
-        if (SelectedNode is null) return;
+        if (SelectedNode is null)
+            return;
 
-        var document = ToFlowDocument();
-        var flowNode = document.Nodes.FirstOrDefault(n => n.InstanceId == SelectedNode.InstanceId);
-        if (flowNode is null) return;
+        var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == SelectedNode.InstanceId);
+        if (flowNode is null)
+            return;
 
-        var cmd = new DeleteNodeCommand(document, [flowNode]);
-        _history.Execute(cmd);
-
-        Nodes.Remove(SelectedNode);
-        // Remove orphaned connections
-        var orphaned = Connections
-            .Where(c => c.SourceNodeId == SelectedNode.InstanceId ||
-                        c.TargetNodeId == SelectedNode.InstanceId)
-            .ToList();
-        foreach (var conn in orphaned)
-            Connections.Remove(conn);
-
+        _history.Execute(new DeleteNodeCommand(_document, [flowNode]));
+        TouchDocument();
         ClearSelection();
+        RebuildFromDocument();
     }
 
     private bool HasSelection => SelectedNode is not null;
@@ -118,15 +115,13 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
     public void MoveNode(NodeViewModel vm, double newX, double newY)
     {
-        var document = ToFlowDocument();
-        var flowNode = document.Nodes.FirstOrDefault(n => n.InstanceId == vm.InstanceId);
-        if (flowNode is null) return;
+        var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == vm.InstanceId);
+        if (flowNode is null)
+            return;
 
-        var cmd = new MoveNodeCommand(document, [(flowNode, newX, newY)]);
-        _history.Execute(cmd);
-
-        vm.X = newX;
-        vm.Y = newY;
+        _history.Execute(new MoveNodeCommand(_document, [(flowNode, newX, newY)]));
+        TouchDocument();
+        RebuildFromDocument(vm.InstanceId);
     }
 
     // ── Connect pins ──────────────────────────────────────────────────────────
@@ -135,107 +130,201 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         Guid sourceNodeId, string sourcePinId,
         Guid targetNodeId, string targetPinId)
     {
-        // Prevent duplicate connections on the same target pin
         if (Connections.Any(c =>
                 c.TargetNodeId == targetNodeId &&
-                c.TargetPinId  == targetPinId))
+                c.TargetPinId == targetPinId))
             return;
 
         var sourceVm = Nodes.FirstOrDefault(n => n.InstanceId == sourceNodeId);
         var targetVm = Nodes.FirstOrDefault(n => n.InstanceId == targetNodeId);
-        if (sourceVm == null || targetVm == null) return;
+        if (sourceVm == null || targetVm == null)
+            return;
 
         var connection = new FlowConnection
         {
-            Id           = Guid.NewGuid(),
+            Id = Guid.NewGuid(),
             SourceNodeId = sourceNodeId,
-            SourcePinId  = sourcePinId,
+            SourcePinId = sourcePinId,
             TargetNodeId = targetNodeId,
-            TargetPinId  = targetPinId
+            TargetPinId = targetPinId
         };
 
-        var document = ToFlowDocument();
-        var cmd      = new ConnectPinsCommand(document, connection);
-        _history.Execute(cmd);
-
-        Connections.Add(new ConnectionViewModel(connection, sourceVm, targetVm));
+        _history.Execute(new ConnectPinsCommand(_document, connection));
+        TouchDocument();
+        RebuildFromDocument();
     }
+
+    [RelayCommand]
+    private void FitToContent()
+    {
+        if (!Nodes.Any())
+        {
+            ZoomReset();
+            return;
+        }
+
+        var minX = Nodes.Min(n => n.X);
+        var minY = Nodes.Min(n => n.Y);
+        OffsetX = -minX + 80;
+        OffsetY = -minY + 80;
+        Zoom = 1.0;
+    }
+
+    [RelayCommand]
+    private void ToggleGrid() => IsGridVisible = !IsGridVisible;
 
     // ── Viewport helpers ─────────────────────────────────────────────────────
 
     public void SetZoom(double newZoom) =>
         Zoom = Math.Clamp(newZoom, MinZoom, MaxZoom);
 
-    public void ZoomIn()  => SetZoom(Zoom * 1.15);
+    public void ZoomIn() => SetZoom(Zoom * 1.15);
     public void ZoomOut() => SetZoom(Zoom / 1.15);
     public void ZoomReset() { Zoom = 1.0; OffsetX = 0; OffsetY = 0; }
-
-    /// <summary>Center the viewport so all nodes are visible.</summary>
-    public void FitToContent()
-    {
-        if (!Nodes.Any()) { ZoomReset(); return; }
-
-        var minX = Nodes.Min(n => n.X);
-        var minY = Nodes.Min(n => n.Y);
-        OffsetX = -minX + 80;
-        OffsetY = -minY + 80;
-        Zoom    = 1.0;
-    }
 
     // ── Undo / Redo ───────────────────────────────────────────────────────────
 
     [RelayCommand(CanExecute = nameof(CanUndoAction))]
-    private void Undo() { _history.Undo(); RebuildFromDocument(); }
+    private void Undo()
+    {
+        _history.Undo();
+        RebuildFromDocument();
+    }
 
     [RelayCommand(CanExecute = nameof(CanRedoAction))]
-    private void Redo() { _history.Redo(); RebuildFromDocument(); }
+    private void Redo()
+    {
+        _history.Redo();
+        RebuildFromDocument();
+    }
 
     private bool CanUndoAction => _history.CanUndo;
     private bool CanRedoAction => _history.CanRedo;
 
     // ── Document sync ─────────────────────────────────────────────────────────
 
-    public FlowDocument ToFlowDocument() => new()
+    public FlowDocument ToFlowDocument()
     {
-        Id            = Guid.NewGuid(),
-        Name          = "Untitled",
-        CreatedAt     = DateTime.UtcNow,
-        UpdatedAt     = DateTime.UtcNow,
-        EngineVersion = "0.1.0",
-        Nodes         = [.. Nodes.Select(vm => vm.ToFlowNode())],
-        Connections   = [.. Connections.Select(vm => vm.ToFlowConnection())]
-    };
+        var existingNodes = _document.Nodes.ToDictionary(n => n.InstanceId);
+        var nextNodes = new List<FlowNode>(Nodes.Count);
 
-    private void RebuildFromDocument()
+        foreach (var vm in Nodes)
+        {
+            if (!existingNodes.TryGetValue(vm.InstanceId, out var node))
+            {
+                node = vm.ToFlowNode();
+            }
+            else
+            {
+                node.X = vm.X;
+                node.Y = vm.Y;
+                node.PinValues = new Dictionary<string, object?>(vm.PinValues);
+                node.Comment = vm.Comment;
+                node.IsDisabled = vm.IsDisabled;
+            }
+
+            nextNodes.Add(node);
+        }
+
+        _document.Nodes.Clear();
+        _document.Nodes.AddRange(nextNodes);
+
+        var existingConnections = _document.Connections.ToDictionary(c => c.Id);
+        var nextConnections = new List<FlowConnection>(Connections.Count);
+
+        foreach (var vm in Connections)
+        {
+            if (!existingConnections.TryGetValue(vm.ConnectionId, out var connection))
+                connection = vm.ToFlowConnection();
+
+            nextConnections.Add(connection);
+        }
+
+        _document.Connections.Clear();
+        _document.Connections.AddRange(nextConnections);
+        _document.CanvasOffsetX = OffsetX;
+        _document.CanvasOffsetY = OffsetY;
+        _document.CanvasZoom = Zoom;
+        _document.UpdatedAt = DateTime.UtcNow;
+        return _document;
+    }
+
+    private void RebuildFromDocument(Guid? selectedNodeId = null)
     {
-        // After Undo/Redo, rebuilt VMs from the updated document
-        // In a full implementation this syncs Nodes and Connections collections
-        // For now, this is a placeholder — Phase 3 will implement full sync
+        var previousSelected = selectedNodeId ?? SelectedNode?.InstanceId;
+
+        Nodes.Clear();
+        Connections.Clear();
+
+        foreach (var node in _document.Nodes)
+        {
+            if (_registry.TryGet(node.TypeId, out var meta, out _) && meta is not null)
+                Nodes.Add(new NodeViewModel(node, meta));
+        }
+
+        foreach (var conn in _document.Connections)
+        {
+            var sourceVm = Nodes.FirstOrDefault(n => n.InstanceId == conn.SourceNodeId);
+            var targetVm = Nodes.FirstOrDefault(n => n.InstanceId == conn.TargetNodeId);
+            if (sourceVm is not null && targetVm is not null)
+                Connections.Add(new ConnectionViewModel(conn, sourceVm, targetVm));
+        }
+
+        OffsetX = _document.CanvasOffsetX;
+        OffsetY = _document.CanvasOffsetY;
+        Zoom = _document.CanvasZoom;
+
+        if (previousSelected is Guid selectedId)
+        {
+            SelectNode(Nodes.FirstOrDefault(n => n.InstanceId == selectedId));
+        }
     }
 
     // ── Load a FlowDocument ───────────────────────────────────────────────────
 
     public void LoadDocument(FlowDocument document)
     {
-        Nodes.Clear();
-        Connections.Clear();
-
-        foreach (var node in document.Nodes)
-        {
-            if (_registry.TryGet(node.TypeId, out var meta, out _) && meta is not null)
-                Nodes.Add(new NodeViewModel(node, meta));
-        }
-
-        foreach (var conn in document.Connections)
-        {
-            var sourceVm = Nodes.FirstOrDefault(n => n.InstanceId == conn.SourceNodeId);
-            var targetVm = Nodes.FirstOrDefault(n => n.InstanceId == conn.TargetNodeId);
-            if (sourceVm != null && targetVm != null)
-                Connections.Add(new ConnectionViewModel(conn, sourceVm, targetVm));
-        }
-
-        OffsetX = document.CanvasOffsetX;
-        OffsetY = document.CanvasOffsetY;
-        Zoom    = document.CanvasZoom;
+        _document = CloneDocument(document);
+        _history.Clear();
+        RebuildFromDocument();
     }
+
+    private static FlowDocument CloneDocument(FlowDocument document) => new()
+    {
+        Id = document.Id,
+        Name = document.Name,
+        Description = document.Description,
+        CreatedAt = document.CreatedAt,
+        UpdatedAt = document.UpdatedAt,
+        SchemaVersion = document.SchemaVersion,
+        EngineVersion = document.EngineVersion,
+        MinimumEngineVersion = document.MinimumEngineVersion,
+        Nodes = document.Nodes.Select(CloneNode).ToList(),
+        Connections = document.Connections.Select(CloneConnection).ToList(),
+        CanvasOffsetX = document.CanvasOffsetX,
+        CanvasOffsetY = document.CanvasOffsetY,
+        CanvasZoom = document.CanvasZoom
+    };
+
+    private static FlowNode CloneNode(FlowNode node) => new()
+    {
+        InstanceId = node.InstanceId,
+        TypeId = node.TypeId,
+        X = node.X,
+        Y = node.Y,
+        PinValues = new Dictionary<string, object?>(node.PinValues),
+        Comment = node.Comment,
+        IsDisabled = node.IsDisabled
+    };
+
+    private static FlowConnection CloneConnection(FlowConnection connection) => new()
+    {
+        Id = connection.Id,
+        SourceNodeId = connection.SourceNodeId,
+        SourcePinId = connection.SourcePinId,
+        TargetNodeId = connection.TargetNodeId,
+        TargetPinId = connection.TargetPinId
+    };
+
+    private void TouchDocument() => _document.UpdatedAt = DateTime.UtcNow;
 }
