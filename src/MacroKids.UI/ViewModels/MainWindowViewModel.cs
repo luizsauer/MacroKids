@@ -99,38 +99,33 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ToggleTheme()
     {
-        // WPF Theme switching logic
         var app = System.Windows.Application.Current;
         if (app == null) return;
 
-        // Try to find the active dark theme dictionary
-        var darkTheme = app.Resources.MergedDictionaries
-            .FirstOrDefault(d => d.Source != null && d.Source.OriginalString.Contains("DarkTheme.xaml"));
+        // Clean any existing theme resources to prevent duplicates
+        var activeTheme = app.Resources.MergedDictionaries
+            .FirstOrDefault(d => d.Source != null && (d.Source.OriginalString.Contains("LightTheme.xaml") || d.Source.OriginalString.Contains("DarkTheme.xaml")));
 
-        if (darkTheme != null)
+        bool isCurrentlyDark = activeTheme != null && activeTheme.Source.OriginalString.Contains("DarkTheme.xaml");
+
+        if (activeTheme != null)
         {
-            // Switch to Light Theme (or create a light colors dictionary override)
-            app.Resources.MergedDictionaries.Remove(darkTheme);
-            
-            // Inject a light overrides dictionary
-            var lightTheme = new System.Windows.ResourceDictionary
-            {
-                Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml") // Fallback check
-            };
-            app.Resources.MergedDictionaries.Add(lightTheme);
-            
-            StatusMessage = "Tema alternado!";
+            app.Resources.MergedDictionaries.Remove(activeTheme);
+        }
+
+        var newTheme = new System.Windows.ResourceDictionary();
+        if (isCurrentlyDark)
+        {
+            newTheme.Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/LightTheme.xaml");
+            StatusMessage = "Tema Claro Ativado!";
         }
         else
         {
-            // Restore Dark Theme
-            var dark = new System.Windows.ResourceDictionary
-            {
-                Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml")
-            };
-            app.Resources.MergedDictionaries.Add(dark);
+            newTheme.Source = new Uri("pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml");
             StatusMessage = "Tema Escuro Ativado!";
         }
+
+        app.Resources.MergedDictionaries.Add(newTheme);
     }
 
     [RelayCommand]

@@ -63,25 +63,23 @@
 
         <!-- Top Right controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-          <!-- Language Selector Dropdown -->
-          <ComboBox x:Name="LanguageCombo" Width="100" Height="28" Margin="0,0,15,0" Background="#1E293B" Foreground="White" BorderBrush="#334155" FontSize="11" FontFamily="Nunito" VerticalContentAlignment="Center" SelectedIndex="0">
-            <ComboBox.Resources>
-              <Style TargetType="Border">
-                <Setter Property="CornerRadius" Value="6"/>
-              </Style>
-            </ComboBox.Resources>
-            <ComboBoxItem Content="🇧🇷 pt-BR" Tag="pt-BR" Selected="LanguageCombo_Selected"/>
-            <ComboBoxItem Content="🇺🇸 en-US" Tag="en" Selected="LanguageCombo_Selected"/>
-            <ComboBoxItem Content="🇪🇸 es-ES" Tag="es" Selected="LanguageCombo_Selected"/>
-          </ComboBox>
+          
+          <!-- Flag Selector Buttons (from Assets) -->
+          <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+            <Button Command="{Binding ChangeLanguageCommand}" CommandParameter="pt-BR" Background="Transparent" BorderThickness="0" Margin="4,0" ToolTip="Português">
+              <Image Source="/Assets/brazil.png" Width="24" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
+            <Button Command="{Binding ChangeLanguageCommand}" CommandParameter="en" Background="Transparent" BorderThickness="0" Margin="4,0" ToolTip="English">
+              <Image Source="/Assets/usa.png" Width="24" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
+            <Button Command="{Binding ChangeLanguageCommand}" CommandParameter="es" Background="Transparent" BorderThickness="0" Margin="4,0" ToolTip="Español">
+              <Image Source="/Assets/spain.png" Width="24" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
+          </StackPanel>
 
-          <!-- Light/Dark theme toggle button -->
-          <Button Command="{Binding ToggleThemeCommand}" Content="🌙" Background="#1E293B" Foreground="White" BorderBrush="#334155" BorderThickness="1" Width="32" Height="32" Margin="0,0,15,0" FontSize="14" VerticalAlignment="Center" ToolTip="Alternar Tema">
-            <Button.Resources>
-              <Style TargetType="Border">
-                <Setter Property="CornerRadius" Value="16"/>
-              </Style>
-            </Button.Resources>
+          <!-- Light/Dark theme toggle button (using Assets image) -->
+          <Button Command="{Binding ToggleThemeCommand}" Background="Transparent" BorderThickness="0" Width="28" Height="28" Margin="0,0,15,0" VerticalAlignment="Center" ToolTip="Alternar Tema">
+            <Image Source="/Assets/sun.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
           </Button>
           
           <Button Content="{Binding Translations[ButtonPublish], Source={x:Static services:LocalizationManager.Instance}}" Background="#2563EB" Foreground="White" FontWeight="Bold" Padding="16,6" BorderThickness="0" FontSize="12" FontFamily="Nunito">

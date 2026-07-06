@@ -21,17 +21,4 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = new ViewModels.MainWindowViewModel();
     }
-
-    private void LanguageCombo_Selected(object sender, RoutedEventArgs e)
-    {
-        if (DataContext == null) return;
-
-        if (e.Source is ComboBoxItem item && item.Tag is string cultureCode)
-        {
-            if (DataContext is ViewModels.MainWindowViewModel vm)
-            {
-                vm.ChangeLanguageCommand.Execute(cultureCode);
-            }
-        }
-    }
 }
