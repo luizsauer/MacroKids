@@ -10,6 +10,7 @@ namespace MacroKids.NodeEditor.Controls;
 
 public partial class NodeEditorControl : UserControl
 {
+    private Point _paletteDragStart;
     private Point _dragStart;
     private bool _isDraggingNode;
     private NodeViewModel? _draggedNode;
@@ -62,6 +63,101 @@ public partial class NodeEditorControl : UserControl
         }
     }
 
+    private void EditorCanvas_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (DataContext is not NodeCanvasViewModel canvasVm || !canvasVm.IsConnectingPins)
+            return;
+
+        canvasVm.UpdateConnectionPreview(e.GetPosition(EditorCanvas));
+    }
+
+    private void EditorCanvas_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not NodeCanvasViewModel canvasVm || !canvasVm.IsConnectingPins)
+            return;
+
+        // If releasing over a pin, let Pin_PreviewMouseLeftButtonUp handle the connection.
+        // PreviewMouseLeftButtonUp tunnels top-down, so this Grid handler fires BEFORE
+        // the pin's handler. We must not cancel here if the target is a pin.
+        if (IsOverPinElement(e.OriginalSource as DependencyObject))
+            return;
+
+        canvasVm.CancelConnectionPreview();
+    }
+
+    private static bool IsOverPinElement(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is FrameworkElement fe && fe.DataContext is NodePinViewModel)
+                return true;
+            source = VisualTreeHelper.GetParent(source);
+        }
+        return false;
+    }
+
+    private void EditorCanvas_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(typeof(NodeMetadata)) || e.Data.GetDataPresent(DataFormats.StringFormat))
+        {
+            e.Effects = DragDropEffects.Copy;
+            e.Handled = true;
+        }
+    }
+
+    private void EditorCanvas_Drop(object sender, DragEventArgs e)
+    {
+        if (DataContext is not NodeCanvasViewModel canvasVm)
+            return;
+
+        var point = e.GetPosition(EditorCanvas);
+        var canvasX = (point.X - canvasVm.OffsetX) / canvasVm.Zoom;
+        var canvasY = (point.Y - canvasVm.OffsetY) / canvasVm.Zoom;
+
+        if (e.Data.GetData(typeof(NodeMetadata)) is NodeMetadata metadata)
+        {
+            canvasVm.AddNode(metadata.TypeId, canvasX, canvasY);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Data.GetData(DataFormats.StringFormat) is string typeId && !string.IsNullOrWhiteSpace(typeId))
+        {
+            canvasVm.AddNode(typeId, canvasX, canvasY);
+            e.Handled = true;
+        }
+    }
+
+    private void PaletteItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not NodeMetadata)
+            return;
+
+        _paletteDragStart = e.GetPosition(this);
+    }
+
+    private void PaletteItem_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not NodeMetadata metadata)
+            return;
+
+        if (e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        Point current = e.GetPosition(this);
+        if (Math.Abs(current.X - _paletteDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _paletteDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        var data = new DataObject();
+        data.SetData(typeof(NodeMetadata), metadata);
+        data.SetData(DataFormats.StringFormat, metadata.TypeId);
+        DragDrop.DoDragDrop(element, data, DragDropEffects.Copy);
+        e.Handled = true;
+    }
+
     private void Node_MouseMove(object sender, MouseEventArgs e)
     {
         if (_isDraggingNode && _draggedNode != null && sender is Border border && border.IsMouseCaptured)
@@ -69,8 +165,6 @@ public partial class NodeEditorControl : UserControl
             Point current = e.GetPosition(EditorCanvas);
             Vector delta = current - _dragStart;
 
-            // Simple movement update, bypassing the undo history directly on active drag
-            // In next stage, we can wrap this in a MoveNodeCommand at DragEnd for clean undo integration
             _draggedNode.X += delta.X;
             _draggedNode.Y += delta.Y;
 
@@ -86,6 +180,11 @@ public partial class NodeEditorControl : UserControl
     {
         if (_isDraggingNode && sender is Border border)
         {
+            if (_draggedNode != null && DataContext is NodeCanvasViewModel canvasVm)
+            {
+                canvasVm.MoveNode(_draggedNode, _draggedNode.X, _draggedNode.Y);
+            }
+
             _isDraggingNode = false;
             _draggedNode = null;
             border.ReleaseMouseCapture();
@@ -98,10 +197,11 @@ public partial class NodeEditorControl : UserControl
         if (sender is FrameworkElement element && element.DataContext is NodePinViewModel pinVm && pinVm.Direction == PinDirection.Output)
         {
             var nodeVm = FindParentDataContext<NodeViewModel>(element);
-            if (nodeVm != null)
+            if (nodeVm != null && DataContext is NodeCanvasViewModel canvasVm)
             {
                 _pendingSourceNode = nodeVm;
                 _pendingSourcePin = pinVm.Pin;
+                canvasVm.BeginConnectionPreview(nodeVm, pinVm.Id, e.GetPosition(EditorCanvas));
                 e.Handled = true;
             }
         }
@@ -109,24 +209,29 @@ public partial class NodeEditorControl : UserControl
 
     private void Pin_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        bool completed = false;
+
         if (_pendingSourceNode != null && _pendingSourcePin != null &&
-            sender is FrameworkElement element && element.DataContext is NodePinViewModel targetPinVm && targetPinVm.Direction == PinDirection.Input)
+            sender is FrameworkElement element && element.DataContext is NodePinViewModel targetPinVm &&
+            targetPinVm.Direction == PinDirection.Input)
         {
             var targetNodeVm = FindParentDataContext<NodeViewModel>(element);
-            if (targetNodeVm != null && targetNodeVm.InstanceId != _pendingSourceNode.InstanceId)
+            if (targetNodeVm != null && targetNodeVm.InstanceId != _pendingSourceNode.InstanceId &&
+                DataContext is NodeCanvasViewModel canvasVm)
             {
-                if (DataContext is NodeCanvasViewModel canvasVm)
-                {
-                    canvasVm.ConnectPins(
-                        _pendingSourceNode.InstanceId, _pendingSourcePin.Id,
-                        targetNodeVm.InstanceId, targetPinVm.Pin.Id);
-                }
+                completed = canvasVm.TryCompleteConnection(targetNodeVm, targetPinVm.Id);
             }
         }
 
-        // Clean up pending states
+        // If not completed, cancel preview (e.g., released on wrong pin type)
+        if (!completed && DataContext is NodeCanvasViewModel cv && cv.IsConnectingPins)
+            cv.CancelConnectionPreview();
+
         _pendingSourceNode = null;
         _pendingSourcePin = null;
+
+        if (completed)
+            e.Handled = true;
     }
 
     private static T? FindParentDataContext<T>(DependencyObject child) where T : class

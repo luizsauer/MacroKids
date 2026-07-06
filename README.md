@@ -134,15 +134,30 @@ dotnet format --verify-no-changes
 
 ## Formato de Projeto
 
-Os projetos MacroKids são salvos como **`.mkproject`** — um arquivo ZIP renomeado, idêntico ao `.docx` ou `.unitypackage`:
+Os projetos MacroKids são salvos como **`.mkproject`** em JSON legível. Arquivos antigos em ZIP ainda abrem, mas o formato novo é texto puro:
 
 ```
-meufluxo.mkproject (ZIP)
-├── project.json    ← grafo serializado + versão
-├── preview.png     ← thumbnail gerado automaticamente
-└── assets/
-    └── images/
+meufluxo.mkproject
+└── FlowDocument em JSON UTF-8
 ```
+
+---
+
+## Estado atual
+
+### Feito
+- Branding com logo, ícone do app e tema claro/escuro
+- Idioma com bandeiras e tooltips traduzidos
+- Save/Load em formato legível (`.mkproject` JSON)
+- Inspector e captura global de coordenadas
+- Base do canvas com drag-and-drop do catálogo
+
+### Falta
+- Conexões de bloco com feedback visual completo
+- Fit/zoom sem salto no layout
+- Sidebar menor e com mais grupos reais
+- Variáveis, Functions, Images, OCR, IA, Events e Settings
+- Varredura final de textos hardcoded
 
 ---
 
@@ -179,9 +194,11 @@ Coloque a DLL em `%AppData%\MacroKids\plugins\` e os blocos aparecem automaticam
 - [x] Modelos de domínio (FlowNode, FlowDocument, NodeMetadata, NodePin)
 - [x] Event Bus e contexto de execução
 - [x] Toolchain de qualidade (editorconfig, CI, analyzers)
-- [ ] Interfaces restantes (INodeExecutor, INodeRegistry)
-- [ ] Command Pattern (Undo/Redo)
-- [ ] Serialização (.mkproject)
+- [x] Interfaces e registry de nós
+- [x] Command Pattern (Undo/Redo)
+- [x] Serialização (.mkproject)
+- [ ] Canvas polish final
+- [ ] Catalog expansion
 
 ### v0.2 — Node Editor
 - [ ] Canvas com pan/zoom/grid

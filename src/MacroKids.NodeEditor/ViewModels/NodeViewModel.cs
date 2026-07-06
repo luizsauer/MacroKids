@@ -36,6 +36,15 @@ public sealed partial class NodeViewModel : ObservableObject
     public ObservableCollection<NodePinViewModel> InputPins { get; } = [];
     public ObservableCollection<NodePinViewModel> OutputPins { get; } = [];
 
+    /// <summary>Only execution/flow input pins (Id="in", DataType=bool). Shown as side connectors.</summary>
+    public ObservableCollection<NodePinViewModel> FlowInputPins { get; } = [];
+
+    /// <summary>Data input pins (parameters). Shown as inline label+textbox rows.</summary>
+    public ObservableCollection<NodePinViewModel> DataInputPins { get; } = [];
+
+    /// <summary>Only execution/flow output pins (Id="done", DataType=bool). Shown as side connectors.</summary>
+    public ObservableCollection<NodePinViewModel> FlowOutputPins { get; } = [];
+
     // Helper property to enable direct two-way binding: {Binding Parameters[ms]}
     public object? this[string pinId]
     {
@@ -65,12 +74,20 @@ public sealed partial class NodeViewModel : ObservableObject
             if (!PinValues.ContainsKey(pin.Id))
                 PinValues[pin.Id] = pin.DefaultValue;
 
-            InputPins.Add(new NodePinViewModel(this, pin));
+            var pinVm = new NodePinViewModel(this, pin);
+            InputPins.Add(pinVm);
+            if (pin.IsFlowPin)
+                FlowInputPins.Add(pinVm);
+            else
+                DataInputPins.Add(pinVm);
         }
 
         foreach (var pin in metadata.Outputs)
         {
-            OutputPins.Add(new NodePinViewModel(this, pin));
+            var pinVm = new NodePinViewModel(this, pin);
+            OutputPins.Add(pinVm);
+            if (pin.IsFlowPin)
+                FlowOutputPins.Add(pinVm);
         }
     }
 
@@ -86,22 +103,24 @@ public sealed partial class NodeViewModel : ObservableObject
         IsDisabled = IsDisabled,
     };
 
+    // ── Pin position helpers ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Approximate vertical center of the node block.
+    /// Border has Margin=5, Grid inside has Margin="14,10".
+    /// Each data row is ~30px. Title row is ~22px.
+    /// </summary>
+    private double NodeCenterY => Y + 5 + (42.0 + DataInputPins.Count * 30.0) / 2.0;
+
     public Point GetInputPinPoint(string pinId)
     {
-        int index = Metadata.Inputs.ToList().FindIndex(p => p.Id == pinId);
-        if (index < 0) index = 0;
-
-        double posY = Y + 48 + (index * 26);
-        return new Point(X + 5, posY);
+        // Left flow pin center: X+7 (pin projects slightly outside left border at X+5)
+        return new Point(X + 7, NodeCenterY);
     }
 
     public Point GetOutputPinPoint(string pinId)
     {
-        int index = Metadata.Outputs.ToList().FindIndex(p => p.Id == pinId);
-        if (index < 0) index = 0;
-
-        double inputOffset = Metadata.Inputs.Count() * 26;
-        double posY = Y + 48 + inputOffset + (index * 26);
-        return new Point(X + 185, posY);
+        // Right flow pin center: X+218 (pin projects slightly outside right border at X+220)
+        return new Point(X + 218, NodeCenterY);
     }
 }

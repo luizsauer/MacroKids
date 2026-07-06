@@ -68,7 +68,7 @@ public class NodeCanvas : Canvas
         ClipToBounds = true;
 
         Focusable = true;
-        Background = new SolidColorBrush(Color.FromRgb(30, 30, 46)); // Default dark bg #1E1E2E
+        SetResourceReference(BackgroundProperty, "BrushBackground");
     }
 
     private static void OnZoomChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

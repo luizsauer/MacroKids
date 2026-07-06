@@ -17,6 +17,7 @@ public static class WaitMetadata
         IconKey = "Timer",
         NodeVersion = new Version(1, 0, 0),
         Pins = [
+            new NodePin { Id = "in", Label = "Entrada", Direction = PinDirection.Input, DataType = typeof(bool) },
             new NodePin { Id = "ms", Label = "Tempo (ms)", Direction = PinDirection.Input, DataType = typeof(int), DefaultValue = 1000 },
             new NodePin { Id = "done", Label = "Concluído", Direction = PinDirection.Output, DataType = typeof(bool) }
         ]

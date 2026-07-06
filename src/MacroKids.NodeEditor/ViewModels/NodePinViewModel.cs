@@ -12,6 +12,7 @@ public sealed partial class NodePinViewModel : ObservableObject
     public string Id => Pin.Id;
     public string Label => Pin.Label;
     public PinDirection Direction => Pin.Direction;
+    public bool IsFlowPin => Pin.IsFlowPin;
 
     public NodePinViewModel(NodeViewModel node, NodePin pin)
     {

@@ -2,22 +2,28 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:local="clr-namespace:MacroKids.NodeEditor.Controls">
 
-  <!-- Pin View Template / Style -->
+  <!-- Pin Dot Style — execution/flow connector -->
   <Style TargetType="{x:Type ContentControl}" x:Key="PinDotStyle">
-    <Setter Property="Width" Value="12" />
-    <Setter Property="Height" Value="12" />
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
     <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="IsHitTestVisible" Value="True" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="{x:Type ContentControl}">
           <Grid>
-            <Ellipse x:Name="OuterDot" Fill="Transparent" Stroke="#5A6E85" StrokeThickness="2" Width="12" Height="12"/>
-            <Ellipse x:Name="InnerDot" Fill="#5A6E85" Width="6" Height="6" Visibility="Collapsed"/>
+            <!-- Transparent hit area (20x20) -->
+            <Rectangle Fill="Transparent" Width="20" Height="20"/>
+            <!-- Visible ring -->
+            <Ellipse x:Name="OuterDot" Fill="#1E293B" Stroke="#5A6E85" StrokeThickness="2" Width="14" Height="14"/>
+            <!-- Inner fill dot — visible on hover -->
+            <Ellipse x:Name="InnerDot" Fill="White" Width="6" Height="6" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="OuterDot" Property="Stroke" Value="#FFFFFF" />
-              <Setter TargetName="OuterDot" Property="StrokeThickness" Value="3" />
+              <Setter TargetName="OuterDot" Property="StrokeThickness" Value="2.5" />
+              <Setter TargetName="InnerDot" Property="Visibility" Value="Visible" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>

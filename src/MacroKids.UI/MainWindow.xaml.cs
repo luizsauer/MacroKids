@@ -1,7 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using MacroKids.Core.Models;
 using MacroKids.UI.ViewModels;
+using MacroKids.UI.Services;
 
 namespace MacroKids.UI;
 
@@ -10,6 +13,8 @@ namespace MacroKids.UI;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private Point _paletteDragStart;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -36,7 +41,9 @@ public partial class MainWindow : Window
     {
         if (DataContext is ViewModels.MainWindowViewModel vm)
         {
-            vm.StatusMessage = "Use os pinos no canvas para conectar blocos.";
+            vm.StatusMessage = LocalizationManager.Instance.Translations.TryGetValue("StatusConnectHint", out var value) && !string.IsNullOrWhiteSpace(value)
+                ? value
+                : "Use the pins on the canvas to connect blocks.";
         }
     }
 
@@ -68,6 +75,36 @@ public partial class MainWindow : Window
         {
             vm.SelectLanguageCommand.Execute(language);
         }
+    }
+
+    private void PaletteItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not NodeMetadata)
+            return;
+
+        _paletteDragStart = e.GetPosition(this);
+    }
+
+    private void PaletteItem_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not NodeMetadata metadata)
+            return;
+
+        if (e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        var current = e.GetPosition(this);
+        if (Math.Abs(current.X - _paletteDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _paletteDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        var data = new DataObject();
+        data.SetData(typeof(NodeMetadata), metadata);
+        data.SetData(DataFormats.StringFormat, metadata.TypeId);
+        DragDrop.DoDragDrop(element, data, DragDropEffects.Copy);
+        e.Handled = true;
     }
 
 }

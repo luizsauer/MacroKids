@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MacroKids.Core.Commands;
@@ -50,9 +51,15 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     [ObservableProperty] private double _offsetX;
     [ObservableProperty] private double _offsetY;
     [ObservableProperty] private bool _isGridVisible = true;
+    [ObservableProperty] private bool _isConnectingPins;
+    [ObservableProperty] private Point _connectionPreviewStart;
+    [ObservableProperty] private Point _connectionPreviewEnd;
+    [ObservableProperty] private Guid? _connectionSourceNodeId;
+    [ObservableProperty] private string? _connectionSourcePinId;
 
     public const double MinZoom = 0.1;
     public const double MaxZoom = 5.0;
+    public string ZoomLabel => $"{Zoom:P0}";
 
     // ── Selection ─────────────────────────────────────────────────────────────
 
@@ -70,6 +77,42 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     }
 
     public void ClearSelection() => SelectNode(null);
+
+    partial void OnZoomChanged(double value) => OnPropertyChanged(nameof(ZoomLabel));
+
+    public void BeginConnectionPreview(NodeViewModel sourceNode, string sourcePinId, Point startPoint)
+    {
+        ConnectionSourceNodeId = sourceNode.InstanceId;
+        ConnectionSourcePinId = sourcePinId;
+        ConnectionPreviewStart = startPoint;
+        ConnectionPreviewEnd = startPoint;
+        IsConnectingPins = true;
+    }
+
+    public void UpdateConnectionPreview(Point currentPoint)
+    {
+        if (!IsConnectingPins)
+            return;
+
+        ConnectionPreviewEnd = currentPoint;
+    }
+
+    public void CancelConnectionPreview()
+    {
+        IsConnectingPins = false;
+        ConnectionSourceNodeId = null;
+        ConnectionSourcePinId = null;
+    }
+
+    public bool TryCompleteConnection(NodeViewModel targetNode, string targetPinId)
+    {
+        if (!IsConnectingPins || ConnectionSourceNodeId is null || string.IsNullOrWhiteSpace(ConnectionSourcePinId))
+            return false;
+
+        ConnectPins(ConnectionSourceNodeId.Value, ConnectionSourcePinId, targetNode.InstanceId, targetPinId);
+        CancelConnectionPreview();
+        return true;
+    }
 
     // ── Node operations ───────────────────────────────────────────────────────
 
@@ -89,7 +132,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
         _history.Execute(new CreateNodeCommand(_document, flowNode));
         TouchDocument();
-        RebuildFromDocument(flowNode.InstanceId);
+        RebuildFromDocument(flowNode.InstanceId, preserveViewport: true);
     }
 
     /// <summary>Delete currently selected node.</summary>
@@ -106,7 +149,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         _history.Execute(new DeleteNodeCommand(_document, [flowNode]));
         TouchDocument();
         ClearSelection();
-        RebuildFromDocument();
+        RebuildFromDocument(preserveViewport: true);
     }
 
     private bool HasSelection => SelectedNode is not null;
@@ -121,7 +164,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
         _history.Execute(new MoveNodeCommand(_document, [(flowNode, newX, newY)]));
         TouchDocument();
-        RebuildFromDocument(vm.InstanceId);
+        RebuildFromDocument(vm.InstanceId, preserveViewport: true);
     }
 
     // ── Connect pins ──────────────────────────────────────────────────────────
@@ -151,7 +194,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
         _history.Execute(new ConnectPinsCommand(_document, connection));
         TouchDocument();
-        RebuildFromDocument();
+        RebuildFromDocument(preserveViewport: true);
     }
 
     public void DisconnectConnection(Guid connectionId)
@@ -162,7 +205,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
         _history.Execute(new DisconnectPinsCommand(_document, connection));
         TouchDocument();
-        RebuildFromDocument();
+        RebuildFromDocument(preserveViewport: true);
     }
 
     [RelayCommand]
@@ -199,14 +242,14 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     private void Undo()
     {
         _history.Undo();
-        RebuildFromDocument();
+        RebuildFromDocument(preserveViewport: true);
     }
 
     [RelayCommand(CanExecute = nameof(CanRedoAction))]
     private void Redo()
     {
         _history.Redo();
-        RebuildFromDocument();
+        RebuildFromDocument(preserveViewport: true);
     }
 
     private bool CanUndoAction => _history.CanUndo;
@@ -260,7 +303,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         return _document;
     }
 
-    private void RebuildFromDocument(Guid? selectedNodeId = null)
+    private void RebuildFromDocument(Guid? selectedNodeId = null, bool preserveViewport = false)
     {
         var previousSelected = selectedNodeId ?? SelectedNode?.InstanceId;
 
@@ -281,9 +324,12 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                 Connections.Add(new ConnectionViewModel(conn, sourceVm, targetVm));
         }
 
-        OffsetX = _document.CanvasOffsetX;
-        OffsetY = _document.CanvasOffsetY;
-        Zoom = _document.CanvasZoom;
+        if (!preserveViewport)
+        {
+            OffsetX = _document.CanvasOffsetX;
+            OffsetY = _document.CanvasOffsetY;
+            Zoom = _document.CanvasZoom;
+        }
 
         if (previousSelected is Guid selectedId)
         {
@@ -297,7 +343,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     {
         _document = CloneDocument(document);
         _history.Clear();
-        RebuildFromDocument();
+        RebuildFromDocument(preserveViewport: false);
     }
 
     private static FlowDocument CloneDocument(FlowDocument document) => new()

@@ -35,4 +35,10 @@ public class NodePin
 
     /// <summary>Optional tooltip shown in the UI.</summary>
     public string? Tooltip { get; init; }
+
+    /// <summary>
+    /// True for execution/flow-control pins (Id is "in" or "done" with DataType bool).
+    /// These are rendered as side connectors and are not shown as inline textbox fields.
+    /// </summary>
+    public bool IsFlowPin => DataType == typeof(bool) && (Id == "in" || Id == "done");
 }

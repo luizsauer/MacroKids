@@ -18,6 +18,7 @@ public static class PressKeyMetadata
         IconKey = "Keyboard",
         NodeVersion = new Version(1, 0, 0),
         Pins = [
+            new NodePin { Id = "in", Label = "Entrada", Direction = PinDirection.Input, DataType = typeof(bool) },
             new NodePin { Id = "key", Label = "Tecla (Ex: A, Enter)", Direction = PinDirection.Input, DataType = typeof(string), DefaultValue = "A" },
             new NodePin { Id = "done", Label = "Concluído", Direction = PinDirection.Output, DataType = typeof(bool) }
         ]

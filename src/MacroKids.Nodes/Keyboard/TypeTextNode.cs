@@ -18,6 +18,7 @@ public static class TypeTextMetadata
         IconKey = "Keyboard",
         NodeVersion = new Version(1, 0, 0),
         Pins = [
+            new NodePin { Id = "in", Label = "Entrada", Direction = PinDirection.Input, DataType = typeof(bool) },
             new NodePin { Id = "text", Label = "Texto para digitar", Direction = PinDirection.Input, DataType = typeof(string), DefaultValue = "Olá" },
             new NodePin { Id = "done", Label = "Concluído", Direction = PinDirection.Output, DataType = typeof(bool) }
         ]

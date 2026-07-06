@@ -1,7 +1,7 @@
 namespace MacroKids.Core.Models;
 
 /// <summary>
-/// The root document of a MacroKids project. Saved as project.json inside a .mkproject archive.
+/// The root document of a MacroKids project. Saved as plain JSON in a .mkproject file.
 /// </summary>
 public class FlowDocument
 {

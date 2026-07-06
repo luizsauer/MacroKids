@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,7 +24,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private NodeCanvasViewModel? _observedCanvas;
 
     [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.3-dev";
-    [ObservableProperty] private string _statusMessage = "Pronto";
+    [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private string _selectedModule = "Blocks";
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isDarkTheme = true;
@@ -70,6 +71,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         UpdateWindowTitle();
         ApplyTheme(isDarkTheme: true);
+        StatusMessage = GetText("StatusReady", "Ready");
     }
 
     private static string GetText(string key, string fallback)
@@ -204,7 +206,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var page = new ProjectPageViewModel(_nodeRegistry, title);
         Pages.Add(page);
         SelectedPage = page;
-        StatusMessage = $"{title} criado.";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusPageCreated", "{0} created."), title);
     }
 
     [RelayCommand]
@@ -227,7 +229,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             SelectedPage = Pages[Math.Max(0, index - 1)];
         }
 
-        StatusMessage = $"{page.Title} fechado.";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusPageClosed", "{0} closed."), page.Title);
     }
 
     [RelayCommand]
@@ -246,7 +248,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
 
         CanvasViewModel.AddNode(metadata.TypeId, 150, 150);
-        StatusMessage = $"Adicionado bloco: {metadata.Name}";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusNodeAdded", "Added block: {0}"), metadata.Name);
     }
 
     [RelayCommand]
@@ -266,7 +268,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ApplyTheme(!IsDarkTheme);
         OnPropertyChanged(nameof(ThemeIcon));
         OnPropertyChanged(nameof(LogoIcon));
-        StatusMessage = IsDarkTheme ? "Tema escuro ativado." : "Tema claro ativado.";
+        StatusMessage = IsDarkTheme
+            ? GetText("StatusThemeDark", "Dark theme enabled.")
+            : GetText("StatusThemeLight", "Light theme enabled.");
     }
 
     [RelayCommand]
@@ -323,7 +327,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedLanguage = Languages.FirstOrDefault(l => l.Code == LocalizationManager.Instance.CurrentCulture) ?? SelectedLanguage;
         OnPropertyChanged(nameof(GroupedNodes));
         UpdateWindowTitle();
-        StatusMessage = $"Idioma alterado: {cultureCode}";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusLanguageChanged", "Language changed: {0}"), cultureCode);
         IsLanguageMenuOpen = false;
     }
 
@@ -340,7 +344,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var point = picker.SelectedPoint;
         SelectedNode["x"] = (int)point.X;
         SelectedNode["y"] = (int)point.Y;
-        StatusMessage = $"Coordenadas capturadas: {point.X:0}, {point.Y:0}";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusCoordinatesCaptured", "Coordinates captured: {0:0}, {1:0}"), point.X, point.Y);
     }
 
     [RelayCommand]
@@ -358,7 +362,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         StatusMessage = GetText("StatusSaving", "Saving project...");
         var doc = CanvasViewModel.ToFlowDocument();
         await MacroKids.Core.Serialization.ProjectPackager.PackAsync(doc, dialog.FileName);
-        StatusMessage = "Projeto salvo com sucesso!";
+        StatusMessage = GetText("StatusProjectSaved", "Project saved successfully!");
     }
 
     [RelayCommand]
@@ -375,7 +379,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         StatusMessage = GetText("StatusLoading", "Loading project...");
         var doc = await MacroKids.Core.Serialization.ProjectPackager.UnpackAsync(dialog.FileName);
         CanvasViewModel.LoadDocument(doc);
-        StatusMessage = $"Projeto '{doc.Name}' carregado!";
+        StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusProjectLoaded", "Project '{0}' loaded!"), doc.Name);
     }
 
     [RelayCommand]
@@ -394,7 +398,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void StopFlow()
     {
         _activeExecutor?.Stop();
-        StatusMessage = "Execução interrompida.";
+        StatusMessage = GetText("StatusExecutionStopped", "Execution stopped.");
     }
 
     [RelayCommand]
@@ -424,7 +428,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    StatusMessage = $"Executando bloco: {e.TypeId}...";
+                    StatusMessage = string.Format(CultureInfo.CurrentCulture, GetText("StatusExecutingNode", "Executing block: {0}..."), e.TypeId);
                 });
             });
 

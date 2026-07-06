@@ -82,6 +82,7 @@
                                                 Margin="8,0,0,0"
                                                 FontSize="11"
                                                 Padding="2,0"
+                                                ToolTip="{Binding Translations[TabClose], Source={x:Static services:LocalizationManager.Instance}}"
                                                 IsEnabled="{Binding CanClose}" />
                                     </Grid>
                                 </Border>
@@ -96,7 +97,8 @@
                             BorderThickness="0"
                             FontSize="16"
                             VerticalAlignment="Center"
-                            Margin="8,0,0,5" />
+                            Margin="8,0,0,5"
+                            ToolTip="{Binding Translations[TabAdd], Source={x:Static services:LocalizationManager.Instance}}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -108,7 +110,7 @@
                             Width="34"
                             Height="34"
                             Padding="0"
-                            ToolTip="Change language">
+                        ToolTip="{Binding Translations[TooltipChangeLanguage], Source={x:Static services:LocalizationManager.Instance}}">
                         <Border CornerRadius="17"
                                 Width="32"
                                 Height="32"
@@ -171,8 +173,14 @@
                         Margin="0,0,15,0"
                         VerticalAlignment="Center"
                         Padding="0"
-                        ToolTip="Alternar tema">
-                    <Image Source="{Binding ThemeIcon}" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+                        ToolTip="{Binding Translations[TooltipToggleTheme], Source={x:Static services:LocalizationManager.Instance}}">
+                    <Grid Width="22" Height="22">
+                        <Rectangle Fill="{DynamicResource BrushTextPrimary}">
+                            <Rectangle.OpacityMask>
+                                <ImageBrush ImageSource="{Binding ThemeIcon}" Stretch="Uniform" />
+                            </Rectangle.OpacityMask>
+                        </Rectangle>
+                    </Grid>
                 </Button>
 
                 <Button Command="{Binding SaveProjectCommand}"
@@ -198,7 +206,7 @@
                             FontSize="18"
                             Margin="15,0,0,0"
                             VerticalAlignment="Center"
-                            ToolTip="Configurações">
+                            ToolTip="{Binding Translations[TooltipSettings], Source={x:Static services:LocalizationManager.Instance}}">
                         <TextBlock Text="⚙" />
                     </Button>
                 </StackPanel>
@@ -262,13 +270,13 @@
                 </Grid>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
-                    <Button Content="⛶" Command="{Binding CanvasViewModel.FitToContentCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Centralizar visualização" />
-                    <Button Content="🌐" Command="{Binding CanvasViewModel.ToggleGridCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Alternar grade" />
+                    <Button Content="⛶" Command="{Binding CanvasViewModel.FitToContentCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="{Binding Translations[TooltipFitCanvas], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <Button Content="🌐" Command="{Binding CanvasViewModel.ToggleGridCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="{Binding Translations[TooltipToggleGrid], Source={x:Static services:LocalizationManager.Instance}}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
-                    <Button Content="↶" Command="{Binding CanvasViewModel.UndoCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="18" Padding="5,0" />
-                    <Button Content="↷" Command="{Binding CanvasViewModel.RedoCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="18" Padding="5,0" />
+                    <Button Content="↶" Command="{Binding CanvasViewModel.UndoCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="18" Padding="5,0" ToolTip="{Binding Translations[TooltipUndo], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <Button Content="↷" Command="{Binding CanvasViewModel.RedoCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="18" Padding="5,0" ToolTip="{Binding Translations[TooltipRedo], Source={x:Static services:LocalizationManager.Instance}}" />
 
                     <Border Width="1" Background="{DynamicResource BrushSurfaceVariant}" Margin="10,6" />
 
@@ -310,74 +318,74 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="-" Command="{Binding CanvasViewModel.ZoomOutCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextPrimary}" FontSize="14" BorderThickness="0" Padding="5" />
-                    <TextBlock Text="100%" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="8,0" FontFamily="Nunito" />
-                    <Button Content="+" Command="{Binding CanvasViewModel.ZoomInCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextPrimary}" FontSize="14" BorderThickness="0" Padding="5" />
+                    <Button Content="-" Command="{Binding CanvasViewModel.ZoomOutCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextPrimary}" FontSize="14" BorderThickness="0" Padding="5" ToolTip="{Binding Translations[TooltipZoomOut], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <TextBlock Text="{Binding CanvasViewModel.ZoomLabel}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="8,0" FontFamily="Nunito" />
+                    <Button Content="+" Command="{Binding CanvasViewModel.ZoomInCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextPrimary}" FontSize="14" BorderThickness="0" Padding="5" ToolTip="{Binding Translations[TooltipZoomIn], Source={x:Static services:LocalizationManager.Instance}}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
-                    <Button Click="SearchCanvas_Click" Content="🔍" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Focar busca" />
-                    <Button Command="{Binding SaveProjectCommand}" Content="📤" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Salvar projeto" />
-                    <Button Click="ConnectLink_Click" Content="🔗" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Modo de ligação" />
-                    <Button Click="Fullscreen_Click" Content="⛶" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Tela cheia" />
-                    <Button Click="LockCanvas_Click" Content="🔒" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Bloquear canvas" />
+                    <Button Click="SearchCanvas_Click" Content="🔍" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="{Binding Translations[TooltipSearchCanvas], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <Button Command="{Binding SaveProjectCommand}" Content="📤" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="{Binding Translations[TooltipSaveProject], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <Button Click="ConnectLink_Click" Content="🔗" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="{Binding Translations[TooltipConnectLink], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <Button Click="Fullscreen_Click" Content="⛶" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="{Binding Translations[TooltipFullscreen], Source={x:Static services:LocalizationManager.Instance}}" />
+                    <Button Click="LockCanvas_Click" Content="🔒" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="{Binding Translations[TooltipLockCanvas], Source={x:Static services:LocalizationManager.Instance}}" />
                 </StackPanel>
             </Grid>
         </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="65" />
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="58" />
+                <ColumnDefinition Width="200" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="320" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Background="{DynamicResource BrushSurface}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,0,1,0">
-                <StackPanel Margin="0,15">
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Blocks" Foreground="{DynamicResource BrushTextPrimary}" Background="{DynamicResource BrushSurfaceVariant}" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                <StackPanel Margin="0,12">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Blocks" Foreground="White" Background="#2563EB" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="🧩" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleBlocks], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Variables" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Variables" Foreground="White" Background="#8B5CF6" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="𝔁" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleVariables], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Functions" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Functions" Foreground="White" Background="#0EA5E9" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="𝒇𝔁" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleFunctions], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Images" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Images" Foreground="White" Background="#3B82F6" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="🖼️" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleImages], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="OCR" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="OCR" Foreground="White" Background="#14B8A6" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="🔍" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleOCR], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="AI" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="AI" Foreground="White" Background="#A855F7" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="✨" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleAI], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Events" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Events" Foreground="White" Background="#EC4899" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="⚡" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleEvents], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Settings" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Settings" Foreground="White" Background="#64748B" BorderThickness="0" Height="56" Margin="4" Padding="0,6">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="⚙️" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleSettings], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
@@ -395,7 +403,10 @@
                                 <ItemsControl ItemsSource="{Binding}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border CornerRadius="8" Padding="10" Margin="0,4" BorderThickness="0" Background="{Binding CategoryColor}">
+                                            <Border CornerRadius="8" Padding="10" Margin="0,4" BorderThickness="0" Background="{Binding CategoryColor}"
+                                                    PreviewMouseLeftButtonDown="PaletteItem_PreviewMouseLeftButtonDown"
+                                                    PreviewMouseMove="PaletteItem_PreviewMouseMove"
+                                                    Cursor="Hand">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
@@ -443,7 +454,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Inspector"
+                    <TextBlock Text="{Binding Translations[InspectorTitle], Source={x:Static services:LocalizationManager.Instance}}"
                                Foreground="{DynamicResource BrushTextPrimary}"
                                FontSize="13"
                                FontWeight="Bold"
@@ -451,7 +462,7 @@
                                Margin="0,0,0,10" />
 
                     <Grid Grid.Row="1">
-                        <TextBlock Text="Select a block to edit its properties."
+                        <TextBlock Text="{Binding Translations[InspectorEmpty], Source={x:Static services:LocalizationManager.Instance}}"
                                    Foreground="{DynamicResource BrushTextSecondary}"
                                    TextWrapping="Wrap"
                                    FontFamily="Nunito">
@@ -475,12 +486,12 @@
                                         <TextBlock Text="{Binding Metadata.Description}" Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,4,0,12" FontFamily="Nunito" />
                                         <TextBlock Text="{Binding Metadata.Category}" Foreground="{DynamicResource BrushPrimary}" FontSize="11" Margin="0,0,0,12" FontFamily="Nunito" />
 
-                                        <CheckBox Content="Disabled"
+                                        <CheckBox Content="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorDisabled]}"
                                                   IsChecked="{Binding IsDisabled, Mode=TwoWay}"
                                                   Foreground="{DynamicResource BrushTextPrimary}"
                                                   Margin="0,0,0,10" />
 
-                                        <TextBlock Text="Comment" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,4" />
+                                        <TextBlock Text="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorComment]}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,4" />
                                         <TextBox Text="{Binding Comment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  Background="{DynamicResource BrushSurface}"
                                                  Foreground="{DynamicResource BrushTextPrimary}"
@@ -489,7 +500,7 @@
                                                  Padding="8,6"
                                                  Margin="0,0,0,12" />
 
-                                        <TextBlock Text="Inputs" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,6" />
+                                        <TextBlock Text="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorInputs]}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,6" />
                                         <ItemsControl ItemsSource="{Binding InputPins}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
@@ -506,7 +517,7 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
 
-                                        <Button Content="Capture mouse position"
+                                        <Button Content="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorCaptureMouse]}"
                                                 Command="{Binding DataContext.PickMoveMouseCoordinatesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 Visibility="{Binding DataContext.CanPickMoveMouseCoordinates, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}"
                                                 Background="{DynamicResource BrushSurface}"
@@ -516,7 +527,7 @@
                                                 Padding="10,6"
                                                 Margin="0,0,0,12" />
 
-                                        <Button Content="Delete block"
+                                        <Button Content="{Binding Source={x:Static services:LocalizationManager.Instance}, Path=Translations[InspectorDeleteBlock]}"
                                                 Command="{Binding DataContext.CanvasViewModel.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 Background="#991B1B"
                                                 Foreground="White"

@@ -2,17 +2,21 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:MacroKids.NodeEditor.Controls"
-             xmlns:vm="clr-namespace:MacroKids.NodeEditor.ViewModels">
+             xmlns:vm="clr-namespace:MacroKids.NodeEditor.ViewModels"
+             AllowDrop="True"
+             DragOver="EditorCanvas_DragOver"
+             Drop="EditorCanvas_Drop">
   <UserControl.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="pack://application:,,,/MacroKids.NodeEditor;component/Themes/LightTheme.xaml" />
         <ResourceDictionary Source="pack://application:,,,/MacroKids.NodeEditor;component/Themes/ControlStyles.xaml" />
       </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </ResourceDictionary>
   </UserControl.Resources>
 
-  <Grid>
+  <Grid PreviewMouseMove="EditorCanvas_PreviewMouseMove"
+        PreviewMouseLeftButtonUp="EditorCanvas_PreviewMouseLeftButtonUp">
     <!-- We put the NodeCanvas inside a ScrollViewer or just directly since we do custom panning -->
     <local:NodeCanvas x:Name="EditorCanvas" 
                       Zoom="{Binding Zoom}"
@@ -30,7 +34,10 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
             <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
-                              Stroke="{Binding StrokeBrush}" StrokeThickness="3"
+                              Stroke="{Binding StrokeBrush}" StrokeThickness="4"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
                               MouseLeftButtonDown="Connection_MouseLeftButtonDown">
           <local:ConnectionLine.Style>
             <Style TargetType="local:ConnectionLine">
@@ -46,6 +53,18 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
+      <local:ConnectionLine IsHitTestVisible="False"
+                            Visibility="{Binding IsConnectingPins, Converter={StaticResource BoolToVisibility}}"
+                            StartPoint="{Binding ConnectionPreviewStart}"
+                            EndPoint="{Binding ConnectionPreviewEnd}"
+                            Stroke="#FFFFFF"
+                            StrokeThickness="4"
+                            StrokeStartLineCap="Round"
+                            StrokeEndLineCap="Round"
+                            StrokeLineJoin="Round"
+                            StrokeDashArray="4,3"
+                            Opacity="0.8" />
+
       <ItemsControl ItemsSource="{Binding Nodes}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -60,7 +79,7 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:NodeViewModel}">
-            <Border BorderThickness="2" CornerRadius="12" Width="200" Height="Auto" Margin="5"
+            <Border BorderThickness="1.5" CornerRadius="14" Width="215" Height="Auto" Margin="5"
                     PreviewMouseDown="Node_PreviewMouseDown"
                     MouseMove="Node_MouseMove"
                     MouseUp="Node_MouseUp"
@@ -69,9 +88,19 @@
                 <Style TargetType="Border">
                   <Setter Property="BorderBrush" Value="Transparent" />
                   <Setter Property="Background" Value="{Binding Metadata.CategoryColor}" />
+                  <Setter Property="Opacity" Value="1" />
+                  <Setter Property="SnapsToDevicePixels" Value="True" />
+                  <Setter Property="Effect">
+                    <Setter.Value>
+                      <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.28" Color="#000000" />
+                    </Setter.Value>
+                  </Setter>
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
                       <Setter Property="BorderBrush" Value="#FFFFFF" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsDisabled}" Value="True">
+                      <Setter Property="Opacity" Value="0.55" />
                     </DataTrigger>
                     <DataTrigger Binding="{Binding IsExecuting}" Value="True">
                       <Setter Property="BorderBrush" Value="#EAB308" />
@@ -83,18 +112,18 @@
                 </Style>
               </Border.Style>
               
-              <Grid Margin="12,10">
+              <Grid Margin="14,10">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="Auto"/>
                   <ColumnDefinition Width="*"/>
                   <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Left Input Pin (Projecting slightly outside left border) -->
-                <ItemsControl Grid.Column="0" ItemsSource="{Binding InputPins}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <!-- Left: Execution input pin (flow "in") -->
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding FlowInputPins}" HorizontalAlignment="Left" VerticalAlignment="Center">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <ContentControl Style="{StaticResource PinDotStyle}" Margin="-18,0,0,0"
+                      <ContentControl Style="{StaticResource PinDotStyle}" Margin="-18,0,4,0"
                                       PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
                                       PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
                     </DataTemplate>
@@ -106,8 +135,8 @@
                   <!-- Block Title -->
                   <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,6"/>
                   
-                  <!-- Parameter Inputs list -->
-                  <ItemsControl ItemsSource="{Binding InputPins}">
+                  <!-- Data Parameter Inputs (non-flow pins with inline textbox) -->
+                  <ItemsControl ItemsSource="{Binding DataInputPins}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="0,3">
@@ -136,11 +165,11 @@
                   </ItemsControl>
                 </StackPanel>
 
-                <!-- Right Output Pin (Projecting slightly outside right border) -->
-                <ItemsControl Grid.Column="2" ItemsSource="{Binding OutputPins}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <!-- Right: Execution output pin (flow "done") -->
+                <ItemsControl Grid.Column="2" ItemsSource="{Binding FlowOutputPins}" HorizontalAlignment="Right" VerticalAlignment="Center">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <ContentControl Style="{StaticResource PinDotStyle}" Margin="0,0,-18,0"
+                      <ContentControl Style="{StaticResource PinDotStyle}" Margin="4,0,-18,0"
                                       PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
                                       PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
                     </DataTemplate>

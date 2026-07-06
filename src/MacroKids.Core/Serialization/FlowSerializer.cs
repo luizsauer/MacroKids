@@ -6,7 +6,7 @@ namespace MacroKids.Core.Serialization;
 
 /// <summary>
 /// Serializes and deserializes <see cref="FlowDocument"/> to/from JSON.
-/// Used internally by <see cref="ProjectPackager"/> to produce the project.json inside .mkproject files.
+/// Used internally by <see cref="ProjectPackager"/> to persist readable .mkproject files.
 /// </summary>
 public static class FlowSerializer
 {
