@@ -3,6 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:MacroKids.NodeEditor.Controls"
              xmlns:vm="clr-namespace:MacroKids.NodeEditor.ViewModels">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/MacroKids.NodeEditor;component/Themes/DarkTheme.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MacroKids.NodeEditor;component/Themes/ControlStyles.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
   <Grid>
     <!-- We put the NodeCanvas inside a ScrollViewer or just directly since we do custom panning -->
     <local:NodeCanvas x:Name="EditorCanvas" 
