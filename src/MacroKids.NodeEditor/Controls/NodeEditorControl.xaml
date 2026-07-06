@@ -32,7 +32,11 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:NodeViewModel}">
-            <Border BorderThickness="2" CornerRadius="8" Background="#252538" Width="180" Height="Auto" Margin="5">
+            <Border BorderThickness="2" CornerRadius="8" Background="#252538" Width="180" Height="Auto" Margin="5"
+                    PreviewMouseDown="Node_PreviewMouseDown"
+                    MouseMove="Node_MouseMove"
+                    MouseUp="Node_MouseUp"
+                    Cursor="SizeAll">
               <Border.Style>
                 <Style TargetType="Border">
                   <Setter Property="BorderBrush" Value="#2D2D44" />

@@ -7,19 +7,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.1.1-dev] - 2026-07-05
+
 ### Added
-- Estrutura inicial da Solution com 7 projetos: Core, NodeEditor, Nodes, Runtime, Recorder, Plugins, UI
-- Modelos de domínio: `FlowNode`, `FlowConnection`, `FlowDocument`, `NodePin`, `NodeMetadata`
-- Interface `IEventBus` com eventos de execução (`NodeStartedEvent`, `NodeCompletedEvent`, etc.)
-- Interface `IExecutionContext` com acesso a variáveis, log e event bus
-- `NodeCategory` enum com todas as categorias de blocos
-- `Directory.Build.props` com versionamento centralizado e analyzers
-- `.editorconfig` com padrão Allman style para C#
-- `.gitignore` para projetos .NET/WPF
-- GitHub Actions CI (`build-and-test.yml`)
+- Logger global configurado com NLog gravando em `logs/crash.log`
+- Captura global de exceções da UI e AppDomain com janelas de diálogo críticas
+- Tela principal (`MainWindow`) estilizada com 3 painéis (Catálogo, Editor, Propriedades)
+- `MainWindowViewModel` com nós demo populados
+- Correção de recursos dinâmicos em `NodeEditorControl.xaml` mesclando temas para evitar `XamlParseException`
+- Atualização da arquitetura e roadmap nos documentos do projeto
 
----
-
-## [0.1.0] - Em desenvolvimento
 
 > MVP inicial — editor visual + execução básica de fluxos

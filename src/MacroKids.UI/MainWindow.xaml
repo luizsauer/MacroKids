@@ -38,8 +38,8 @@
 
         <!-- Logo Placeholder / Label -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <Ellipse Width="24" Height="24" Fill="#3B82F6" Margin="0,0,10,0"/>
-          <TextBlock Text="MacroKids" FontWeight="ExtraBold" FontSize="18" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+          <Image Source="pack://siteoforigin:,,,/Assets/MacroKids-MiniLogo.png" Width="32" Height="32" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+          <TextBlock Text="MacroKids" FontWeight="ExtraBold" FontSize="20" Foreground="#FFFFFF" VerticalAlignment="Center"/>
         </StackPanel>
 
         <!-- Quick Controls -->
