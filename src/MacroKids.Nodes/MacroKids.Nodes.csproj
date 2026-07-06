@@ -2,12 +2,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MacroKids.Core\MacroKids.Core.csproj" />
+    <ProjectReference Include="..\MacroKids.Runtime\MacroKids.Runtime.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
 </Project>
