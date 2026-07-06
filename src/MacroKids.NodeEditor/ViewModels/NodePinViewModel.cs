@@ -23,6 +23,12 @@ public sealed partial class NodePinViewModel : ObservableObject
             if (Pin.InputType == PinInputType.Dropdown && (Pin.Id == "list" || Pin.Id == "name"))
             {
                 var vars = MacroKids.Core.Translator.GetDeclaredVariables().ToList();
+                var currentVal = Value?.ToString();
+                if (!string.IsNullOrEmpty(currentVal) && !vars.Contains(currentVal))
+                {
+                    vars.Add(currentVal);
+                }
+
                 if (vars.Count == 0)
                 {
                     return new List<string> { Pin.DefaultValue?.ToString() ?? "myVar" };

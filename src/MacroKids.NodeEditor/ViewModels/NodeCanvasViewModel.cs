@@ -434,4 +434,133 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     };
 
     private void TouchDocument() => _document.UpdatedAt = DateTime.UtcNow;
+
+    public void ImportRecordedActions(List<RecordedAction> actions)
+    {
+        if (actions == null || actions.Count == 0) return;
+
+        SyncVmPinValuesToDocument();
+
+        _document.Nodes.Clear();
+        _document.Connections.Clear();
+
+        double currentX = 100;
+        double currentY = 150;
+        Guid? previousDoneNodeId = null;
+
+        foreach (var action in actions)
+        {
+            if (action.DelayMs > 100)
+            {
+                var waitNode = new FlowNode
+                {
+                    InstanceId = Guid.NewGuid(),
+                    TypeId = "flow.wait",
+                    X = currentX,
+                    Y = currentY,
+                    PinValues = new Dictionary<string, object?> { ["ms"] = action.DelayMs }
+                };
+                _document.Nodes.Add(waitNode);
+
+                if (previousDoneNodeId != null)
+                {
+                    _document.Connections.Add(new FlowConnection
+                    {
+                        Id = Guid.NewGuid(),
+                        SourceNodeId = previousDoneNodeId.Value,
+                        SourcePinId = "done",
+                        TargetNodeId = waitNode.InstanceId,
+                        TargetPinId = "in"
+                    });
+                }
+                previousDoneNodeId = waitNode.InstanceId;
+                currentX += 300;
+                if (currentX > 1500)
+                {
+                    currentX = 100;
+                    currentY += 180;
+                }
+            }
+
+            if (action.Type == ActionType.LeftClick || action.Type == ActionType.RightClick)
+            {
+                var moveNode = new FlowNode
+                {
+                    InstanceId = Guid.NewGuid(),
+                    TypeId = "mouse.move",
+                    X = currentX,
+                    Y = currentY,
+                    PinValues = new Dictionary<string, object?> { ["x"] = action.X, ["y"] = action.Y }
+                };
+                _document.Nodes.Add(moveNode);
+
+                if (previousDoneNodeId != null)
+                {
+                    _document.Connections.Add(new FlowConnection
+                    {
+                        Id = Guid.NewGuid(),
+                        SourceNodeId = previousDoneNodeId.Value,
+                        SourcePinId = "done",
+                        TargetNodeId = moveNode.InstanceId,
+                        TargetPinId = "in"
+                    });
+                }
+                previousDoneNodeId = moveNode.InstanceId;
+                currentX += 300;
+                if (currentX > 1500) { currentX = 100; currentY += 180; }
+
+                string clickTypeId = action.Type == ActionType.LeftClick ? "mouse.left_click" : "mouse.right_click";
+                var clickNode = new FlowNode
+                {
+                    InstanceId = Guid.NewGuid(),
+                    TypeId = clickTypeId,
+                    X = currentX,
+                    Y = currentY
+                };
+                _document.Nodes.Add(clickNode);
+
+                _document.Connections.Add(new FlowConnection
+                {
+                    Id = Guid.NewGuid(),
+                    SourceNodeId = previousDoneNodeId.Value,
+                    SourcePinId = "done",
+                    TargetNodeId = clickNode.InstanceId,
+                    TargetPinId = "in"
+                });
+                previousDoneNodeId = clickNode.InstanceId;
+                currentX += 300;
+                if (currentX > 1500) { currentX = 100; currentY += 180; }
+            }
+            else if (action.Type == ActionType.KeyPress)
+            {
+                var keyNode = new FlowNode
+                {
+                    InstanceId = Guid.NewGuid(),
+                    TypeId = "keyboard.press_key",
+                    X = currentX,
+                    Y = currentY,
+                    PinValues = new Dictionary<string, object?> { ["key"] = action.KeyName, ["times"] = 1 }
+                };
+                _document.Nodes.Add(keyNode);
+
+                if (previousDoneNodeId != null)
+                {
+                    _document.Connections.Add(new FlowConnection
+                    {
+                        Id = Guid.NewGuid(),
+                        SourceNodeId = previousDoneNodeId.Value,
+                        SourcePinId = "done",
+                        TargetNodeId = keyNode.InstanceId,
+                        TargetPinId = "in"
+                    });
+                }
+                previousDoneNodeId = keyNode.InstanceId;
+                currentX += 300;
+                if (currentX > 1500) { currentX = 100; currentY += 180; }
+            }
+        }
+
+        TouchDocument();
+        RebuildFromDocument(preserveViewport: false);
+    }
 }

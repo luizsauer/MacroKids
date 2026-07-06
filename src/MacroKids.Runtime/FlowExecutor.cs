@@ -544,16 +544,38 @@ public sealed class FlowExecutor
         FlowDocument document,
         IReadOnlyDictionary<(Guid, string), object?> outputCache)
     {
-        var resolved = new Dictionary<string, object?>(node.PinValues);
+        var resolved = new Dictionary<string, object?>();
+
+        foreach (var kv in node.PinValues)
+        {
+            resolved[kv.Key] = UnboxJsonElement(kv.Value);
+        }
 
         foreach (var conn in document.Connections.Where(c => c.TargetNodeId == node.InstanceId))
         {
             var key = (conn.SourceNodeId, conn.SourcePinId);
             if (outputCache.TryGetValue(key, out var upstreamValue))
-                resolved[conn.TargetPinId] = upstreamValue;
+                resolved[conn.TargetPinId] = UnboxJsonElement(upstreamValue);
         }
 
         return resolved;
+    }
+
+    private static object? UnboxJsonElement(object? value)
+    {
+        if (value is System.Text.Json.JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.String => element.GetString(),
+                System.Text.Json.JsonValueKind.Number => element.TryGetInt32(out int i) ? i : (element.TryGetDouble(out double d) ? d : element.GetRawText()),
+                System.Text.Json.JsonValueKind.True => true,
+                System.Text.Json.JsonValueKind.False => false,
+                System.Text.Json.JsonValueKind.Null => null,
+                _ => element.GetRawText()
+            };
+        }
+        return value;
     }
 
     private static bool EvaluateCondition(string condition, ExecutionContext context)

@@ -445,6 +445,41 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void RecordMacro()
+    {
+        StatusMessage = "Iniciando gravador global de macro...";
+        MacroKids.UI.Services.MacroRecorder.Start();
+
+        // Minimiza a janela principal
+        if (Application.Current.MainWindow != null)
+        {
+            Application.Current.MainWindow.WindowState = WindowState.Minimized;
+        }
+
+        // Abre a janelinha flutuante para controle
+        var overlay = new Views.RecorderOverlayWindow(() =>
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var actions = MacroKids.UI.Services.MacroRecorder.Stop();
+
+                // Restaura a janela principal
+                if (Application.Current.MainWindow != null)
+                {
+                    Application.Current.MainWindow.WindowState = WindowState.Normal;
+                    Application.Current.MainWindow.Activate();
+                }
+
+                // Importa as acoes gravadas para o canvas da pagina selecionada
+                CanvasViewModel.ImportRecordedActions(actions);
+
+                StatusMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, "Macro gravada com sucesso! {0} blocos gerados.", actions.Count);
+            });
+        });
+        overlay.Show();
+    }
+
+    [RelayCommand]
     private void ExportProject()
     {
         SaveProjectCommand.Execute(null);

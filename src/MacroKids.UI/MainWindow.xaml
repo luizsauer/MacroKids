@@ -331,6 +331,18 @@
                             <TextBlock Text="{Binding Translations[ButtonStop], Source={x:Static services:LocalizationManager.Instance}}" />
                         </StackPanel>
                     </Button>
+
+                    <Button Command="{Binding RecordMacroCommand}" Background="#DC2626" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="6,0,2,0" Height="28" ToolTip="Grava cliques, posição do mouse e teclas digitadas em segundo plano">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔴 " />
+                            <TextBlock Text="Gravar Macro" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
@@ -465,14 +477,29 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition>
+                        <RowDefinition.Style>
+                            <Style TargetType="RowDefinition">
+                                <Setter Property="Height" Value="140" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLogExpanded}" Value="False">
+                                        <Setter Property="Height" Value="Auto" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </RowDefinition.Style>
+                    </RowDefinition>
                 </Grid.RowDefinitions>
 
                 <editor:NodeEditorControl Grid.Row="0"
-                                          x:Name="EditorView"
-                                          ClipToBounds="True"
-                                          DataContext="{Binding CanvasViewModel}" />
+                                           x:Name="EditorView"
+                                           ClipToBounds="True"
+                                           DataContext="{Binding CanvasViewModel}" />
 
-                <Expander Grid.Row="1" 
+                <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource BrushSurfaceVariant}" ShowsPreview="True"
+                              Visibility="{Binding IsLogExpanded, Converter={StaticResource BoolToVisibility}}" />
+
+                <Expander Grid.Row="2" 
                           Header="Console de Execução (Logs)" 
                           Background="{DynamicResource BrushSurface}" 
                           Foreground="{DynamicResource BrushTextPrimary}" 
@@ -483,7 +510,7 @@
                           FontFamily="Nunito"
                           FontSize="11"
                           FontWeight="Bold">
-                    <Grid Height="140" Background="#090D16">
+                    <Grid Background="#090D16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
