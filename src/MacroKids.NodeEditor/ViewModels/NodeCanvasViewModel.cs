@@ -546,6 +546,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             mouseOptimized.Add(act);
         }
         finalOptimized = mouseOptimized;
+        finalOptimized = MacroKids.Core.Services.RecordedActionTiming.ShiftDelaysToPrecedingAction(finalOptimized);
 
         // 2. Generate Graph
         double currentX = 100;

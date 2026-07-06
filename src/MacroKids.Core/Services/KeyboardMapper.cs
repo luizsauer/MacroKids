@@ -156,4 +156,42 @@ public static class KeyboardMapper
     }
 
     public const int HoldThresholdMs = 250;
+
+    /// <summary>
+    /// Parses a key expression such as "W+A", "W,A", "WA", or "Ctrl+Shift+A"
+    /// into virtual-key codes. Duplicate keys are ignored.
+    /// </summary>
+    public static IReadOnlyList<byte> ParseKeyTokens(string input)
+    {
+        var result = new List<byte>();
+        if (string.IsNullOrWhiteSpace(input))
+            return result;
+
+        string trimmed = input.Trim();
+        string[] parts = trimmed.Split(['+', ',', ';', '|', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length == 1 && parts[0].Length > 1)
+        {
+            string token = parts[0];
+            if (token.All(static c => char.IsLetterOrDigit(c)))
+            {
+                foreach (char c in token)
+                {
+                    AddVirtualKey(result, GetVirtualKeyCode(c.ToString()));
+                }
+                return result;
+            }
+        }
+
+        foreach (string part in parts)
+            AddVirtualKey(result, GetVirtualKeyCode(part));
+
+        return result;
+    }
+
+    private static void AddVirtualKey(List<byte> keys, byte virtualKey)
+    {
+        if (virtualKey != 0 && !keys.Contains(virtualKey))
+            keys.Add(virtualKey);
+    }
 }

@@ -46,13 +46,13 @@ public static class HoldKeyMetadata
     {
         TypeId = "keyboard.hold_key",
         Name = "Hold Key",
-        Description = "Holds a key down for a specified duration in milliseconds.",
+        Description = "Holds one or more keys down for a specified duration (e.g. W+A for diagonal movement).",
         Category = NodeCategory.Keyboard,
         IconKey = "Keyboard",
-        NodeVersion = new Version(1, 0, 0),
+        NodeVersion = new Version(1, 1, 0),
         Pins = [
             new NodePin { Id = "in",    Label = "In",       Direction = PinDirection.Input,  DataType = typeof(bool) },
-            new NodePin { Id = "key",   Label = "Tecla",    Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "Ctrl", InputType = PinInputType.KeyCapture },
+            new NodePin { Id = "key",   Label = "Tecla(s)", Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "W+A", InputType = PinInputType.Text },
             new NodePin { Id = "ms",    Label = "Hold (ms)",Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 500 },
             new NodePin { Id = "times", Label = "Vezes",    Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 1 },
             new NodePin { Id = "done",  Label = "Done",     Direction = PinDirection.Output, DataType = typeof(bool) }
@@ -138,42 +138,41 @@ public class HoldKeyExecutor : INodeExecutor
 {
     public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
     {
-        string key = "Ctrl";
+        string key = "W+A";
         if (inputs.TryGetValue("key", out var kv) && kv is string ks)
             key = ks;
         else if (node.PinValues.TryGetValue("key", out var sk) && sk is string skStr)
             key = skStr;
+        else if (inputs.TryGetValue("key", out var raw) && raw != null)
+            key = raw.ToString() ?? key;
+        else if (node.PinValues.TryGetValue("key", out var rawPin) && rawPin != null)
+            key = rawPin.ToString() ?? key;
 
         int ms = MacroKids.Core.Services.PinValueReader.GetInt(inputs, node.PinValues, "ms", 500);
         int times = MacroKids.Core.Services.PinValueReader.GetInt(inputs, node.PinValues, "times", 1);
 
-        ctx.Log($"Segurando tecla(s) {key} por {ms}ms ({times} vez/vezes)...");
-
-        var keyParts = key.Split(new[] { '+', ',' }, StringSplitOptions.RemoveEmptyEntries);
-        var virtualKeys = new List<byte>();
-
-        foreach (var kp in keyParts)
+        var virtualKeys = MacroKids.Core.Services.KeyboardMapper.ParseKeyTokens(key);
+        if (virtualKeys.Count == 0)
         {
-            byte vk = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(kp);
-            if (vk != 0)
-                virtualKeys.Add(vk);
+            ctx.Log($"Aviso: nenhuma tecla reconhecida em '{key}'. Use formatos como W+A, WA ou Ctrl+Shift+A.", MacroKids.Core.Interfaces.LogLevel.Warning);
+            return NodeExecutionResult.Success(new() { ["done"] = true });
         }
 
-        if (virtualKeys.Count > 0)
+        string keySummary = string.Join("+", virtualKeys.Select(vk => MacroKids.Core.Services.KeyboardMapper.GetKeyName(vk)).Where(n => n.Length > 0));
+        ctx.Log($"Segurando tecla(s) {keySummary} por {ms}ms ({times} vez/vezes)...");
+
+        for (int i = 0; i < times; i++)
         {
-            for (int i = 0; i < times; i++)
-            {
-                if (i > 0)
-                    await Task.Delay(100);
+            if (i > 0)
+                await Task.Delay(100);
 
-                foreach (var vk in virtualKeys)
-                    MacroKids.Core.Interop.NativeInput.KeyDown(vk);
+            foreach (byte vk in virtualKeys)
+                MacroKids.Core.Interop.NativeInput.KeyDown(vk);
 
-                await Task.Delay(ms);
+            await Task.Delay(ms);
 
-                for (int k = virtualKeys.Count - 1; k >= 0; k--)
-                    MacroKids.Core.Interop.NativeInput.KeyUp(virtualKeys[k]);
-            }
+            for (int k = virtualKeys.Count - 1; k >= 0; k--)
+                MacroKids.Core.Interop.NativeInput.KeyUp(virtualKeys[k]);
         }
 
         return NodeExecutionResult.Success(new() { ["done"] = true });
@@ -199,29 +198,22 @@ public class ComboKeyExecutor : INodeExecutor
 
         ctx.Log($"Executando atalho de teclado: {combo}");
 
-        var keys = combo.Split('+').Select(k => k.Trim().ToUpperInvariant()).ToList();
-        var pressedVirtualKeys = new List<byte>();
+        var pressedVirtualKeys = MacroKids.Core.Services.KeyboardMapper.ParseKeyTokens(combo).ToList();
 
         try
         {
-            foreach (var keyName in keys)
+            foreach (byte vk in pressedVirtualKeys)
             {
-                byte vk = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(keyName);
-                if (vk != 0)
-                {
-                    keybd_event(vk, 0, 0, UIntPtr.Zero); // Down
-                    pressedVirtualKeys.Add(vk);
-                    await Task.Delay(10);
-                }
+                keybd_event(vk, 0, 0, UIntPtr.Zero);
+                await Task.Delay(10);
             }
         }
         finally
         {
-            // Release in reverse order
             pressedVirtualKeys.Reverse();
-            foreach (var vk in pressedVirtualKeys)
+            foreach (byte vk in pressedVirtualKeys)
             {
-                keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Up
+                keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
                 await Task.Delay(10);
             }
         }
