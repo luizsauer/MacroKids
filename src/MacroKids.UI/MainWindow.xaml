@@ -46,10 +46,13 @@
 
         <!-- Quick Controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Desfazer" Command="{Binding CanvasViewModel.UndoCommand}" Margin="4,0" Width="90" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
-          <Button Content="Refazer" Command="{Binding CanvasViewModel.RedoCommand}" Margin="4,0" Width="90" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
-          <Border Width="1" Background="#2D2D44" Margin="10,5"/>
-          <Button Content="▶ Executar" Background="#22C55E" Foreground="White" FontWeight="Bold" Width="100" Height="32" BorderThickness="0" FontSize="12"/>
+          <Button Content="Abrir" Command="{Binding LoadProjectCommand}" Margin="4,0" Width="80" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
+          <Button Content="Salvar" Command="{Binding SaveProjectCommand}" Margin="4,0" Width="80" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
+          <Border Width="1" Background="#2D2D44" Margin="6,5"/>
+          <Button Content="Desfazer" Command="{Binding CanvasViewModel.UndoCommand}" Margin="4,0" Width="80" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
+          <Button Content="Refazer" Command="{Binding CanvasViewModel.RedoCommand}" Margin="4,0" Width="80" Height="32" Background="#252538" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="11" FontWeight="Bold"/>
+          <Border Width="1" Background="#2D2D44" Margin="6,5"/>
+          <Button Content="▶ Executar" Command="{Binding RunFlowCommand}" Background="#22C55E" Foreground="White" FontWeight="Bold" Width="100" Height="32" BorderThickness="0" FontSize="12"/>
         </StackPanel>
       </Grid>
     </Border>

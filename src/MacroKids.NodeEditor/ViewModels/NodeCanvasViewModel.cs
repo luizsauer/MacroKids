@@ -76,7 +76,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             Y          = canvasY
         };
 
-        var document = BuildFlowDocument(); // snapshot of current state
+        var document = ToFlowDocument(); // snapshot of current state
         var cmd      = new CreateNodeCommand(document, flowNode);
 
         _history.Execute(cmd);
@@ -93,7 +93,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     {
         if (SelectedNode is null) return;
 
-        var document = BuildFlowDocument();
+        var document = ToFlowDocument();
         var flowNode = document.Nodes.FirstOrDefault(n => n.InstanceId == SelectedNode.InstanceId);
         if (flowNode is null) return;
 
@@ -118,7 +118,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
     public void MoveNode(NodeViewModel vm, double newX, double newY)
     {
-        var document = BuildFlowDocument();
+        var document = ToFlowDocument();
         var flowNode = document.Nodes.FirstOrDefault(n => n.InstanceId == vm.InstanceId);
         if (flowNode is null) return;
 
@@ -154,7 +154,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             TargetPinId  = targetPinId
         };
 
-        var document = BuildFlowDocument();
+        var document = ToFlowDocument();
         var cmd      = new ConnectPinsCommand(document, connection);
         _history.Execute(cmd);
 
@@ -195,7 +195,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
 
     // ── Document sync ─────────────────────────────────────────────────────────
 
-    private FlowDocument BuildFlowDocument() => new()
+    public FlowDocument ToFlowDocument() => new()
     {
         Id            = Guid.NewGuid(),
         Name          = "Untitled",
