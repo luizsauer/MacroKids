@@ -58,7 +58,7 @@ public class PressKeyExecutor : INodeExecutor
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
     private const int INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_SCANCODE = 0x0008;
+    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     public async Task<NodeExecutionResult> ExecuteAsync(
         FlowNode node,
@@ -91,6 +91,10 @@ public class PressKeyExecutor : INodeExecutor
         {
             ushort scanCode = (ushort)MapVirtualKey(virtualKey, 0);
 
+            bool isExtended = (virtualKey >= 0x21 && virtualKey <= 0x2F) || (virtualKey >= 0x25 && virtualKey <= 0x28);
+            uint downFlags = isExtended ? KEYEVENTF_EXTENDEDKEY : 0;
+            uint upFlags = KEYEVENTF_KEYUP | (isExtended ? KEYEVENTF_EXTENDEDKEY : 0);
+
             for (int i = 0; i < times; i++)
             {
                 if (i > 0)
@@ -106,7 +110,7 @@ public class PressKeyExecutor : INodeExecutor
                         {
                             wVk = (ushort)virtualKey,
                             wScan = scanCode,
-                            dwFlags = KEYEVENTF_SCANCODE,
+                            dwFlags = downFlags,
                             time = 0,
                             dwExtraInfo = IntPtr.Zero
                         }
@@ -115,7 +119,7 @@ public class PressKeyExecutor : INodeExecutor
                 SendInput(1, new[] { inputDown }, Marshal.SizeOf(typeof(INPUT)));
 
                 // Pequeno atraso para simular o pressionamento real
-                await Task.Delay(20);
+                await Task.Delay(30);
 
                 // Key Up
                 var inputUp = new INPUT
@@ -127,7 +131,7 @@ public class PressKeyExecutor : INodeExecutor
                         {
                             wVk = (ushort)virtualKey,
                             wScan = scanCode,
-                            dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                            dwFlags = upFlags,
                             time = 0,
                             dwExtraInfo = IntPtr.Zero
                         }

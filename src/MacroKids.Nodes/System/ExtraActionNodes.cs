@@ -166,37 +166,33 @@ public class HoldKeyExecutor : INodeExecutor
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
     private const int INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_SCANCODE = 0x0008;
+    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
 
     public async Task<NodeExecutionResult> ExecuteAsync(FlowNode node, IExecutionContext ctx, IReadOnlyDictionary<string, object?> inputs)
     {
         string key = "Ctrl";
-        if (inputs.TryGetValue("key", out var kVal) && kVal is string rk)
-            key = rk;
+        if (inputs.TryGetValue("key", out var kv) && kv is string ks)
+            key = ks;
         else if (node.PinValues.TryGetValue("key", out var sk) && sk is string skStr)
             key = skStr;
 
         int ms = 500;
-        if (inputs.TryGetValue("ms", out var mVal) && mVal is int rm)
-            ms = rm;
+        if (inputs.TryGetValue("ms", out var mv) && mv is int mi)
+            ms = mi;
         else if (node.PinValues.TryGetValue("ms", out var sm) && sm is int smInt)
             ms = smInt;
-        else if (inputs.TryGetValue("ms", out var mValObj) && mValObj != null)
-            ms = Convert.ToInt32(mValObj);
 
         int times = 1;
-        if (inputs.TryGetValue("times", out var tVal) && tVal is int rt)
-            times = rt;
+        if (inputs.TryGetValue("times", out var tv) && tv is int ti)
+            times = ti;
         else if (node.PinValues.TryGetValue("times", out var st) && st is int stInt)
             times = stInt;
-        else if (inputs.TryGetValue("times", out var tValObj) && tValObj != null)
-            times = Convert.ToInt32(tValObj);
 
         ctx.Log($"Segurando tecla(s) {key} por {ms}ms ({times} vez/vezes)...");
 
         var keyParts = key.Split(new[] { '+', ',' }, StringSplitOptions.RemoveEmptyEntries);
-        var keyData = new List<(ushort scanCode, ushort virtualKey)>();
+        var keyData = new List<(ushort scanCode, ushort virtualKey, uint downFlags, uint upFlags)>();
 
         foreach (var kp in keyParts)
         {
@@ -204,7 +200,10 @@ public class HoldKeyExecutor : INodeExecutor
             if (vk != 0)
             {
                 ushort sc = (ushort)MapVirtualKey(vk, 0);
-                keyData.Add((sc, vk));
+                bool isExtended = (vk >= 0x21 && vk <= 0x2F) || (vk >= 0x25 && vk <= 0x28);
+                uint downFlags = isExtended ? KEYEVENTF_EXTENDEDKEY : 0;
+                uint upFlags = KEYEVENTF_KEYUP | (isExtended ? KEYEVENTF_EXTENDEDKEY : 0);
+                keyData.Add((sc, vk, downFlags, upFlags));
             }
         }
 
@@ -215,7 +214,6 @@ public class HoldKeyExecutor : INodeExecutor
                 if (i > 0)
                     await Task.Delay(100);
 
-                // Envia Down para todas simultaneamente
                 var inputsDown = new INPUT[keyData.Count];
                 for (int s = 0; s < keyData.Count; s++)
                 {
@@ -228,7 +226,7 @@ public class HoldKeyExecutor : INodeExecutor
                             {
                                 wVk = keyData[s].virtualKey,
                                 wScan = keyData[s].scanCode,
-                                dwFlags = KEYEVENTF_SCANCODE,
+                                dwFlags = keyData[s].downFlags,
                                 time = 0,
                                 dwExtraInfo = IntPtr.Zero
                             }
@@ -239,7 +237,6 @@ public class HoldKeyExecutor : INodeExecutor
 
                 await Task.Delay(ms);
 
-                // Envia Up para todas em ordem reversa
                 var inputsUp = new INPUT[keyData.Count];
                 for (int s = 0; s < keyData.Count; s++)
                 {
@@ -253,7 +250,7 @@ public class HoldKeyExecutor : INodeExecutor
                             {
                                 wVk = data.virtualKey,
                                 wScan = data.scanCode,
-                                dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                                dwFlags = data.upFlags,
                                 time = 0,
                                 dwExtraInfo = IntPtr.Zero
                             }

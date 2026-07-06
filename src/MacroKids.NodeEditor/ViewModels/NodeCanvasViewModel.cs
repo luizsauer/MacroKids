@@ -512,6 +512,28 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             finalOptimized.Add(act);
         }
 
+        // 1.3. Otimizar: Mesclar Movimento seguido de Clique em um único Clique com Coordenada
+        var mouseOptimized = new List<RecordedAction>();
+        for (int i = 0; i < finalOptimized.Count; i++)
+        {
+            var act = finalOptimized[i];
+            if (act.Type == ActionType.Move && i + 1 < finalOptimized.Count)
+            {
+                var next = finalOptimized[i + 1];
+                if ((next.Type == ActionType.LeftClick || next.Type == ActionType.RightClick) && 
+                    next.KeyName != "PRESS" && next.KeyName != "RELEASE")
+                {
+                    // Mescla: O Clique herda a coordenada do movimento e o delay acumulado
+                    var mergedClick = new RecordedAction(next.Type, act.X, act.Y, act.DelayMs + next.DelayMs, next.KeyName);
+                    mouseOptimized.Add(mergedClick);
+                    i++; // Pula o clique já processado
+                    continue;
+                }
+            }
+            mouseOptimized.Add(act);
+        }
+        finalOptimized = mouseOptimized;
+
         // 2. Generate Graph
         double currentX = 100;
         double currentY = 150;
@@ -611,16 +633,17 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                 }
                 else
                 {
-                    // Clique simples: Mover + Clicar
-                    var moveNode = new FlowNode
+                    // Clique simples com coordenada embutida
+                    string clickTypeId = action.Type == ActionType.LeftClick ? "mouse.left_click" : "mouse.right_click";
+                    var clickNode = new FlowNode
                     {
                         InstanceId = Guid.NewGuid(),
-                        TypeId = "mouse.move",
+                        TypeId = clickTypeId,
                         X = currentX,
                         Y = currentY,
                         PinValues = new Dictionary<string, object?> { ["x"] = action.X, ["y"] = action.Y }
                     };
-                    _document.Nodes.Add(moveNode);
+                    _document.Nodes.Add(clickNode);
 
                     if (previousDoneNodeId != null)
                     {
@@ -629,32 +652,10 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                             Id = Guid.NewGuid(),
                             SourceNodeId = previousDoneNodeId.Value,
                             SourcePinId = "done",
-                            TargetNodeId = moveNode.InstanceId,
+                            TargetNodeId = clickNode.InstanceId,
                             TargetPinId = "in"
                         });
                     }
-                    previousDoneNodeId = moveNode.InstanceId;
-                    currentX += 300;
-                    if (currentX > 1500) { currentX = 100; currentY += 180; }
-
-                    string clickTypeId = action.Type == ActionType.LeftClick ? "mouse.left_click" : "mouse.right_click";
-                    var clickNode = new FlowNode
-                    {
-                        InstanceId = Guid.NewGuid(),
-                        TypeId = clickTypeId,
-                        X = currentX,
-                        Y = currentY
-                    };
-                    _document.Nodes.Add(clickNode);
-
-                    _document.Connections.Add(new FlowConnection
-                    {
-                        Id = Guid.NewGuid(),
-                        SourceNodeId = previousDoneNodeId.Value,
-                        SourcePinId = "done",
-                        TargetNodeId = clickNode.InstanceId,
-                        TargetPinId = "in"
-                    });
                     previousDoneNodeId = clickNode.InstanceId;
                 }
                 currentX += 300;
