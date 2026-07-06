@@ -10,6 +10,19 @@ public enum PinDirection
 }
 
 /// <summary>
+/// Defines how the pin value is edited in the node UI.
+/// </summary>
+public enum PinInputType
+{
+    /// <summary>Free-text or numeric TextBox (default).</summary>
+    Text,
+    /// <summary>ComboBox with a predefined set of options.</summary>
+    Dropdown,
+    /// <summary>TextBox that captures the next key pressed (no typing).</summary>
+    KeyCapture,
+}
+
+/// <summary>
 /// Represents a single connection point (port) on a node — either an input or an output.
 /// The UI uses this to render the pin dot and label; it never hard-codes per-node knowledge.
 /// </summary>
@@ -37,8 +50,20 @@ public class NodePin
     public string? Tooltip { get; init; }
 
     /// <summary>
-    /// True for execution/flow-control pins (Id is "in" or "done" with DataType bool).
-    /// These are rendered as side connectors and are not shown as inline textbox fields.
+    /// How the pin value is edited in the node block UI.
+    /// Ignored for flow pins (bool DataType).
     /// </summary>
-    public bool IsFlowPin => DataType == typeof(bool) && (Id == "in" || Id == "done");
+    public PinInputType InputType { get; init; } = PinInputType.Text;
+
+    /// <summary>
+    /// Predefined options shown when InputType == Dropdown.
+    /// </summary>
+    public IReadOnlyList<string> Options { get; init; } = [];
+
+    /// <summary>
+    /// True for execution/flow-control pins.
+    /// Convention: all bool-typed pins are flow connectors (in, done, loop, item, true, false, etc.).
+    /// These are rendered as side connector dots and are NOT shown as inline textbox fields.
+    /// </summary>
+    public bool IsFlowPin => DataType == typeof(bool);
 }

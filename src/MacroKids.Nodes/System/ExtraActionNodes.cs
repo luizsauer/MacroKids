@@ -10,14 +10,14 @@ public static class MouseScrollMetadata
     {
         TypeId = "mouse.scroll",
         Name = "Scroll",
-        Description = "Scrolls the mouse wheel up or down by the given amount.",
+        Description = "Rola a roda do mouse para cima ou para baixo.",
         Category = NodeCategory.Mouse,
         IconKey = "Mouse",
         NodeVersion = new Version(1, 0, 0),
         Pins = [
             new NodePin { Id = "in",        Label = "In",        Direction = PinDirection.Input,  DataType = typeof(bool) },
-            new NodePin { Id = "direction", Label = "Direction", Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "down" },
-            new NodePin { Id = "amount",    Label = "Amount",    Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 3 },
+            new NodePin { Id = "direction", Label = "Direção",   Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "down", InputType = PinInputType.Dropdown, Options = ["up", "down"] },
+            new NodePin { Id = "amount",    Label = "Quantidade",Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 3 },
             new NodePin { Id = "done",      Label = "Done",      Direction = PinDirection.Output, DataType = typeof(bool) }
         ]
     };
@@ -51,10 +51,11 @@ public static class HoldKeyMetadata
         IconKey = "Keyboard",
         NodeVersion = new Version(1, 0, 0),
         Pins = [
-            new NodePin { Id = "in",   Label = "In",       Direction = PinDirection.Input,  DataType = typeof(bool) },
-            new NodePin { Id = "key",  Label = "Key",      Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "Ctrl" },
-            new NodePin { Id = "ms",   Label = "Hold (ms)",Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 500 },
-            new NodePin { Id = "done", Label = "Done",     Direction = PinDirection.Output, DataType = typeof(bool) }
+            new NodePin { Id = "in",    Label = "In",       Direction = PinDirection.Input,  DataType = typeof(bool) },
+            new NodePin { Id = "key",   Label = "Tecla",    Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "Ctrl", InputType = PinInputType.KeyCapture },
+            new NodePin { Id = "ms",    Label = "Hold (ms)",Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 500 },
+            new NodePin { Id = "times", Label = "Vezes",    Direction = PinDirection.Input,  DataType = typeof(int),    DefaultValue = 1 },
+            new NodePin { Id = "done",  Label = "Done",     Direction = PinDirection.Output, DataType = typeof(bool) }
         ]
     };
 }
@@ -154,14 +155,26 @@ public class HoldKeyExecutor : INodeExecutor
         else if (node.PinValues.TryGetValue("ms", out var sm) && sm is int smInt)
             ms = smInt;
 
-        ctx.Log($"Segurando tecla {key} por {ms}ms...");
+        int times = 1;
+        if (inputs.TryGetValue("times", out var tVal) && tVal is int rt)
+            times = rt;
+        else if (node.PinValues.TryGetValue("times", out var st) && st is int stInt)
+            times = stInt;
+
+        ctx.Log($"Segurando tecla {key} por {ms}ms ({times} vez/vezes)...");
 
         byte virtualKey = GetVirtualKeyCode(key);
         if (virtualKey != 0)
         {
-            keybd_event(virtualKey, 0, 0, UIntPtr.Zero); // Down
-            await Task.Delay(ms);
-            keybd_event(virtualKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Up
+            for (int i = 0; i < times; i++)
+            {
+                if (i > 0)
+                    await Task.Delay(100);
+
+                keybd_event(virtualKey, 0, 0, UIntPtr.Zero); // Down
+                await Task.Delay(ms);
+                keybd_event(virtualKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero); // Up
+            }
         }
 
         return NodeExecutionResult.Success(new() { ["done"] = true });
@@ -204,8 +217,8 @@ public class ComboKeyExecutor : INodeExecutor
         string combo = "Ctrl+C";
         if (inputs.TryGetValue("combo", out var cVal) && cVal is string rc)
             combo = rc;
-        else if (node.PinValues.TryGetValue("combo", out var sc) && sc is string scStr)
-            combo = scStr;
+        else if (node.PinValues.TryGetValue("combo", out var sk) && sk is string skStr)
+            combo = skStr;
         else if (inputs.TryGetValue("combo", out var cValObj) && cValObj != null)
             combo = cValObj.ToString() ?? "Ctrl+C";
 

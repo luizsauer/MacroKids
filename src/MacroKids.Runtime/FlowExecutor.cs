@@ -5,9 +5,8 @@ using MacroKids.Core.Models;
 namespace MacroKids.Runtime;
 
 /// <summary>
-/// Engine that traverses a <see cref="FlowDocument"/> graph and executes each node in order.
-/// Publishes lifecycle events via <see cref="IEventBus"/> so the UI can visualize execution
-/// in real time without any direct coupling to this class.
+/// Engine that traverses a <see cref="FlowDocument"/> graph following active execution paths (flow pins).
+/// Supports branching (If), loops (Repeat, ForEach), and sequential execution.
 /// </summary>
 public sealed class FlowExecutor
 {
@@ -16,6 +15,7 @@ public sealed class FlowExecutor
 
     private CancellationTokenSource? _cts;
     private SemaphoreSlim? _pauseSemaphore;
+    private readonly HashSet<Guid> _currentlyExecutingNodes = [];
 
     public FlowExecutor(INodeRegistry registry, IEventBus eventBus)
     {
@@ -36,7 +36,7 @@ public sealed class FlowExecutor
 
     // ── Control ───────────────────────────────────────────────────────────────
 
-    /// <summary>Start executing the flow asynchronously.</summary>
+    /// <summary>Start executing the flow by tracing active flow connections.</summary>
     public async Task RunAsync(FlowDocument document)
     {
         if (IsRunning)
@@ -46,6 +46,7 @@ public sealed class FlowExecutor
         _pauseSemaphore = new SemaphoreSlim(1, 1);
         IsRunning      = true;
         IsPaused       = false;
+        _currentlyExecutingNodes.Clear();
 
         var startedAt = DateTime.UtcNow;
         _eventBus.Publish(new ExecutionStartedEvent(document.Id, startedAt));
@@ -53,94 +54,41 @@ public sealed class FlowExecutor
         try
         {
             var context = new ExecutionContext(_eventBus, _cts.Token);
-            var orderedNodes = TopologicalSort(document);
-
-            // Track output values keyed by (nodeInstanceId, pinId)
             var outputCache = new Dictionary<(Guid, string), object?>();
 
-            foreach (var node in orderedNodes)
+            // 1. Find root nodes (start points).
+            // A node is a root if it has a flow input pin "in" but no incoming connections to it.
+            // Or if it doesn't have any flow input pins at all.
+            var flowInputPinIds = new HashSet<Guid>();
+            foreach (var conn in document.Connections)
             {
-                _cts.Token.ThrowIfCancellationRequested();
-
-                // Wait if paused (Step mode releases the semaphore once)
-                await _pauseSemaphore.WaitAsync(_cts.Token);
-                _pauseSemaphore.Release();
-
-                if (node.IsDisabled)
+                // If it connects to a flow pin (usually "in")
+                if (conn.TargetPinId == "in")
                 {
-                    _eventBus.Publish(new NodeSkippedEvent(
-                        document.Id, node.InstanceId, node.TypeId, "Node is disabled"));
-                    continue;
+                    flowInputPinIds.Add(conn.TargetNodeId);
                 }
+            }
 
-                if (!_registry.TryGet(node.TypeId, out _, out var executor) || executor is null)
+            var startNodes = document.Nodes
+                .Where(n => !flowInputPinIds.Contains(n.InstanceId) && !n.IsDisabled)
+                .ToList();
+
+            if (startNodes.Count == 0 && document.Nodes.Any())
+            {
+                // Fallback: pick the first non-disabled node
+                var firstNode = document.Nodes.FirstOrDefault(n => !n.IsDisabled);
+                if (firstNode != null)
                 {
-                    _eventBus.Publish(new NodeSkippedEvent(
-                        document.Id, node.InstanceId, node.TypeId,
-                        $"TypeId '{node.TypeId}' not registered"));
-                    continue;
+                    startNodes.Add(firstNode);
                 }
+            }
 
-                _eventBus.Publish(new NodeStartedEvent(
-                    document.Id, node.InstanceId, node.TypeId));
+            context.Log($"Iniciando execução do fluxo. {startNodes.Count} ponto(s) de partida encontrado(s).");
 
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                // Resolve input values (static values + upstream outputs)
-                var resolvedInputs = ResolveInputs(node, document, outputCache);
-
-                NodeExecutionResult result;
-                try
-                {
-                    result = await executor.ExecuteAsync(node, context, resolvedInputs);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    sw.Stop();
-                    _eventBus.Publish(new NodeErrorEvent(
-                        document.Id, node.InstanceId, node.TypeId, ex));
-                    context.Log($"Error in '{node.TypeId}': {ex.Message}", LogLevel.Error);
-                    break; // stop execution on unhandled node error
-                }
-
-                sw.Stop();
-
-                if (result.IsSuccess)
-                {
-                    // Cache outputs for downstream nodes
-                    foreach (var kv in result.OutputValues)
-                        outputCache[(node.InstanceId, kv.Key)] = kv.Value;
-
-                    _eventBus.Publish(new NodeCompletedEvent(
-                        document.Id, node.InstanceId, node.TypeId,
-                        sw.Elapsed, result.OutputValues));
-                }
-                else
-                {
-                    _eventBus.Publish(new NodeErrorEvent(
-                        document.Id, node.InstanceId, node.TypeId,
-                        result.Exception ?? new Exception(result.ErrorMessage)));
-                    break;
-                }
-
-                // Apply the node's custom inline delay if specified
-                int inlineDelay = 0;
-                if (node.PinValues.TryGetValue("delay", out var dVal))
-                {
-                    if (dVal is int id) inlineDelay = id;
-                    else if (dVal != null) int.TryParse(dVal.ToString(), out inlineDelay);
-                }
-                if (inlineDelay > 0)
-                {
-                    await Task.Delay(inlineDelay, _cts.Token);
-                }
-
-                if (StepDelayMs > 0)
-                    await Task.Delay(StepDelayMs, _cts.Token);
+            // Execute all starting paths
+            foreach (var node in startNodes)
+            {
+                await ExecuteBranchAsync(node.InstanceId, context, outputCache, document);
             }
 
             _eventBus.Publish(new ExecutionCompletedEvent(
@@ -163,6 +111,248 @@ public sealed class FlowExecutor
         }
     }
 
+    /// <summary>
+    /// Executes a node and recursively follows all triggered flow output connections.
+    /// Special nodes (If, Repeat, ForEach) are orchestrated directly.
+    /// </summary>
+    private async Task ExecuteBranchAsync(
+        Guid nodeId,
+        ExecutionContext context,
+        Dictionary<(Guid, string), object?> outputCache,
+        FlowDocument document)
+    {
+        _cts!.Token.ThrowIfCancellationRequested();
+
+        // Find the node structure
+        var node = document.Nodes.FirstOrDefault(n => n.InstanceId == nodeId);
+        if (node == null || node.IsDisabled)
+            return;
+
+        // Prevent infinite stack recursion on loops that aren't properly managed
+        if (!_currentlyExecutingNodes.Add(nodeId))
+        {
+            // Already executing in this stack branch (detected recursive dependency)
+            return;
+        }
+
+        try
+        {
+            // Wait if paused (Step mode releases the semaphore once)
+            await _pauseSemaphore!.WaitAsync(_cts.Token);
+            _pauseSemaphore.Release();
+
+            // ─── Direct Orchestration for Structural Nodes ───
+            if (node.TypeId == "logic.repeat")
+            {
+                await ExecuteRepeatLoopAsync(node, context, outputCache, document);
+                return;
+            }
+            if (node.TypeId == "logic.foreach")
+            {
+                await ExecuteForEachLoopAsync(node, context, outputCache, document);
+                return;
+            }
+
+            // ─── Standard Node Execution ───
+            if (!_registry.TryGet(node.TypeId, out _, out var executor) || executor is null)
+            {
+                _eventBus.Publish(new NodeSkippedEvent(
+                    document.Id, node.InstanceId, node.TypeId,
+                    $"TypeId '{node.TypeId}' não registrado"));
+                return;
+            }
+
+            _eventBus.Publish(new NodeStartedEvent(document.Id, node.InstanceId, node.TypeId));
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            var resolvedInputs = ResolveInputs(node, document, outputCache);
+            NodeExecutionResult result;
+            try
+            {
+                result = await executor.ExecuteAsync(node, context, resolvedInputs);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                _eventBus.Publish(new NodeErrorEvent(document.Id, node.InstanceId, node.TypeId, ex));
+                context.Log($"Erro em '{node.TypeId}': {ex.Message}", LogLevel.Error);
+                throw;
+            }
+
+            sw.Stop();
+
+            if (result.IsSuccess)
+            {
+                foreach (var kv in result.OutputValues)
+                    outputCache[(node.InstanceId, kv.Key)] = kv.Value;
+
+                _eventBus.Publish(new NodeCompletedEvent(
+                    document.Id, node.InstanceId, node.TypeId,
+                    sw.Elapsed, result.OutputValues));
+            }
+            else
+            {
+                var ex = result.Exception ?? new Exception(result.ErrorMessage);
+                _eventBus.Publish(new NodeErrorEvent(document.Id, node.InstanceId, node.TypeId, ex));
+                throw ex;
+            }
+
+            // Inline delays
+            int inlineDelay = 0;
+            if (node.PinValues.TryGetValue("delay", out var dVal))
+            {
+                if (dVal is int id) inlineDelay = id;
+                else if (dVal != null) int.TryParse(dVal.ToString(), out inlineDelay);
+            }
+            if (inlineDelay > 0)
+                await Task.Delay(inlineDelay, _cts.Token);
+
+            if (StepDelayMs > 0)
+                await Task.Delay(StepDelayMs, _cts.Token);
+
+            // Follow active flow output pins
+            var activeOutputs = result.OutputValues
+                .Where(kv => kv.Value is bool b && b)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            // Default done/true fallback if not explicitly returned but pin exists in connection
+            var flowConns = document.Connections.Where(c => c.SourceNodeId == node.InstanceId).ToList();
+            foreach (var conn in flowConns)
+            {
+                // If the pin is active in the result, or if it is the "done" pin and no explicit boolean was returned
+                bool isPinTriggered = activeOutputs.Contains(conn.SourcePinId) || 
+                                     (conn.SourcePinId == "done" && !result.OutputValues.ContainsKey("done"));
+
+                if (isPinTriggered)
+                {
+                    await ExecuteBranchAsync(conn.TargetNodeId, context, outputCache, document);
+                }
+            }
+        }
+        finally
+        {
+            _currentlyExecutingNodes.Remove(nodeId);
+        }
+    }
+
+    /// <summary>
+    /// Custom execution for logic.repeat that executes the inner loop branch X times.
+    /// </summary>
+    private async Task ExecuteRepeatLoopAsync(
+        FlowNode node,
+        ExecutionContext context,
+        Dictionary<(Guid, string), object?> outputCache,
+        FlowDocument document)
+    {
+        _eventBus.Publish(new NodeStartedEvent(document.Id, node.InstanceId, node.TypeId));
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var resolvedInputs = ResolveInputs(node, document, outputCache);
+        int times = 5;
+        if (resolvedInputs.TryGetValue("times", out var tVal) && tVal is int rt)
+            times = rt;
+        else if (node.PinValues.TryGetValue("times", out var st) && st is int stInt)
+            times = stInt;
+        else if (resolvedInputs.TryGetValue("times", out var tValObj) && tValObj != null)
+            int.TryParse(tValObj.ToString(), out times);
+
+        context.Log($"Iniciando loop de repetição: {times} vezes");
+
+        var loopConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "loop");
+
+        for (int i = 0; i < times; i++)
+        {
+            _cts!.Token.ThrowIfCancellationRequested();
+            context.Log($"Loop - Iteração {i + 1} de {times}");
+
+            if (loopConn != null)
+            {
+                // Execute the loop body branch
+                await ExecuteBranchAsync(loopConn.TargetNodeId, context, outputCache, document);
+            }
+
+            await Task.Delay(10, _cts.Token);
+        }
+
+        sw.Stop();
+        var outputs = new Dictionary<string, object?> { ["done"] = true };
+        _eventBus.Publish(new NodeCompletedEvent(document.Id, node.InstanceId, node.TypeId, sw.Elapsed, outputs));
+
+        var doneConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "done");
+        if (doneConn != null)
+        {
+            await ExecuteBranchAsync(doneConn.TargetNodeId, context, outputCache, document);
+        }
+    }
+
+    /// <summary>
+    /// Custom execution for logic.foreach that iterates over items of a list.
+    /// </summary>
+    private async Task ExecuteForEachLoopAsync(
+        FlowNode node,
+        ExecutionContext context,
+        Dictionary<(Guid, string), object?> outputCache,
+        FlowDocument document)
+    {
+        _eventBus.Publish(new NodeStartedEvent(document.Id, node.InstanceId, node.TypeId));
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var resolvedInputs = ResolveInputs(node, document, outputCache);
+        string listName = "myList";
+        if (resolvedInputs.TryGetValue("list", out var lVal) && lVal is string rl)
+            listName = rl;
+        else if (node.PinValues.TryGetValue("list", out var sl) && sl is string slStr)
+            listName = slStr;
+
+        context.Log($"Iniciando loop For Each na lista: {listName}");
+
+        System.Collections.IEnumerable enumerable;
+        if (context.TryGetVariable(listName, out var listObj) && listObj is System.Collections.IEnumerable en)
+        {
+            enumerable = en;
+        }
+        else
+        {
+            context.Log($"Lista '{listName}' não encontrada. Usando lista temporária mock.");
+            enumerable = new List<object> { "Item 1", "Item 2", "Item 3" };
+        }
+
+        var itemConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "item");
+
+        int index = 0;
+        foreach (var item in enumerable)
+        {
+            _cts!.Token.ThrowIfCancellationRequested();
+            context.Log($"For Each - Item [{index}]: {item}");
+
+            // Put current item value in output cache
+            outputCache[(node.InstanceId, "item")] = item;
+
+            if (itemConn != null)
+            {
+                await ExecuteBranchAsync(itemConn.TargetNodeId, context, outputCache, document);
+            }
+
+            index++;
+            await Task.Delay(10, _cts.Token);
+        }
+
+        sw.Stop();
+        var outputs = new Dictionary<string, object?> { ["done"] = true };
+        _eventBus.Publish(new NodeCompletedEvent(document.Id, node.InstanceId, node.TypeId, sw.Elapsed, outputs));
+
+        var doneConn = document.Connections.FirstOrDefault(c => c.SourceNodeId == node.InstanceId && c.SourcePinId == "done");
+        if (doneConn != null)
+        {
+            await ExecuteBranchAsync(doneConn.TargetNodeId, context, outputCache, document);
+        }
+    }
+
     /// <summary>Stop execution immediately.</summary>
     public void Stop() => _cts?.Cancel();
 
@@ -172,7 +362,7 @@ public sealed class FlowExecutor
         if (!IsRunning || IsPaused || _pauseSemaphore is null)
             return;
 
-        _pauseSemaphore.Wait(0); // acquire — next WaitAsync in RunAsync will block
+        _pauseSemaphore.Wait(0); // acquire — next WaitAsync in ExecuteBranchAsync will block
         IsPaused = true;
 
         if (_cts is not null)
@@ -192,44 +382,6 @@ public sealed class FlowExecutor
 
     // ── Graph helpers ─────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Topological sort (Kahn's algorithm) — returns nodes in execution order.
-    /// Nodes with no incoming connections come first (trigger/event nodes).
-    /// </summary>
-    private static List<FlowNode> TopologicalSort(FlowDocument document)
-    {
-        var inDegree = document.Nodes.ToDictionary(n => n.InstanceId, _ => 0);
-
-        foreach (var conn in document.Connections)
-            inDegree[conn.TargetNodeId]++;
-
-        var queue  = new Queue<FlowNode>(document.Nodes.Where(n => inDegree[n.InstanceId] == 0));
-        var result = new List<FlowNode>();
-
-        while (queue.Count > 0)
-        {
-            var node = queue.Dequeue();
-            result.Add(node);
-
-            foreach (var downstream in document.Connections
-                .Where(c => c.SourceNodeId == node.InstanceId)
-                .Select(c => document.Nodes.FirstOrDefault(n => n.InstanceId == c.TargetNodeId))
-                .OfType<FlowNode>())
-            {
-                inDegree[downstream.InstanceId]--;
-                if (inDegree[downstream.InstanceId] == 0)
-                    queue.Enqueue(downstream);
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Resolves the effective input values for a node:
-    /// - First uses the static PinValues from the node instance.
-    /// - Then overlays any values produced by upstream connected nodes.
-    /// </summary>
     private static IReadOnlyDictionary<string, object?> ResolveInputs(
         FlowNode node,
         FlowDocument document,

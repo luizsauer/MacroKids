@@ -182,22 +182,38 @@
                         </Rectangle>
                     </Grid>
                 </Button>
+                <Button Command="{Binding LoadProjectCommand}"
+                        Background="#4B5563"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        Padding="16,6"
+                        BorderThickness="0"
+                        FontSize="12"
+                        FontFamily="Nunito"
+                        Margin="0,0,8,0">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6" />
+                        </Style>
+                    </Button.Resources>
+                    <TextBlock Text="{Binding Translations[TooltipLoadProject], Source={x:Static services:LocalizationManager.Instance}}" />
+                </Button>
 
                 <Button Command="{Binding SaveProjectCommand}"
                         Background="#2563EB"
                         Foreground="White"
                         FontWeight="Bold"
                         Padding="16,6"
-                            BorderThickness="0"
-                            FontSize="12"
-                            FontFamily="Nunito">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="6" />
-                            </Style>
-                        </Button.Resources>
-                        <TextBlock Text="{Binding Translations[ButtonSave], Source={x:Static services:LocalizationManager.Instance}}" />
-                    </Button>
+                        BorderThickness="0"
+                        FontSize="12"
+                        FontFamily="Nunito">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6" />
+                        </Style>
+                    </Button.Resources>
+                    <TextBlock Text="{Binding Translations[ButtonSave], Source={x:Static services:LocalizationManager.Instance}}" />
+                </Button>
 
                     <Button Command="{Binding SelectModuleCommand}" CommandParameter="Settings"
                             Background="Transparent"

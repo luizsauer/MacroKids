@@ -29,6 +29,7 @@
   "InspectorInputs": "Entradas",
   "InspectorCaptureMouse": "Capturar posición del mouse",
   "InspectorDeleteBlock": "Eliminar bloque",
+  "InspectorDuplicateBlock": "Duplicar bloque",
   "PickerInstruction": "Haz clic en cualquier lugar para capturar la posición del mouse",
   "PickerCancel": "Pulsa Esc para cancelar",
   "ButtonPlay": "Ejecutar",

@@ -262,4 +262,32 @@ public partial class NodeEditorControl : UserControl
 
         return false;
     }
+
+    private void KeyCaptureTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is TextBox textBox && textBox.DataContext is NodePinViewModel pinVm)
+        {
+            e.Handled = true;
+            string keyName = e.Key.ToString();
+            if (e.Key == Key.System)
+                keyName = e.SystemKey.ToString();
+
+            // Mapeamentos amigáveis para teclas comuns
+            keyName = keyName switch
+            {
+                "LeftCtrl" or "RightCtrl" => "Ctrl",
+                "LeftShift" or "RightShift" => "Shift",
+                "LeftAlt" or "RightAlt" => "Alt",
+                "Return" => "Enter",
+                "Escape" => "Esc",
+                "Back" => "Backspace",
+                "Space" => "Space",
+                _ => keyName
+            };
+
+            pinVm.Value = keyName;
+            Keyboard.ClearFocus();
+        }
+    }
 }
+

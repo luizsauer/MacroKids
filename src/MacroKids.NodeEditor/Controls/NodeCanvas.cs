@@ -65,10 +65,43 @@ public class NodeCanvas : Canvas
         _transformGroup.Children.Add(_translateTransform);
 
         RenderTransform = _transformGroup;
-        ClipToBounds = true;
 
         Focusable = true;
+        ClipToBounds = false; // Parent Grid handles clipping — canvas is logically infinite.
         SetResourceReference(BackgroundProperty, "BrushBackground");
+        Width = 10000;
+        Height = 10000;
+    }
+
+    // ── Infinite-canvas layout overrides ─────────────────────────────────────
+
+    /// <summary>
+    /// Always report the available viewport size, never the children bounding box.
+    /// This prevents nodes placed far from the origin from expanding the layout.
+    /// </summary>
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var infinite = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        foreach (UIElement child in Children)
+            child.Measure(infinite);
+
+        return new Size(
+            double.IsInfinity(availableSize.Width)  ? 0 : availableSize.Width,
+            double.IsInfinity(availableSize.Height) ? 0 : availableSize.Height);
+    }
+
+    /// <summary>
+    /// Place each child at its Canvas.Left / Canvas.Top with no clamping to layout bounds.
+    /// </summary>
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        foreach (UIElement child in Children)
+        {
+            double x = GetLeft(child);  if (double.IsNaN(x)) x = 0;
+            double y = GetTop(child);   if (double.IsNaN(y)) y = 0;
+            child.Arrange(new Rect(x, y, child.DesiredSize.Width, child.DesiredSize.Height));
+        }
+        return finalSize;
     }
 
     private static void OnZoomChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

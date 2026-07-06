@@ -169,6 +169,29 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         RebuildFromDocument(preserveViewport: true);
     }
 
+    /// <summary>Duplicate currently selected node.</summary>
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void DuplicateSelected()
+    {
+        if (SelectedNode is null)
+            return;
+
+        var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == SelectedNode.InstanceId);
+        if (flowNode is null)
+            return;
+
+        SyncVmPinValuesToDocument();
+
+        // Create a copy with offset
+        var duplicateNode = CloneNode(flowNode, Guid.NewGuid());
+        duplicateNode.X += 30;
+        duplicateNode.Y += 30;
+
+        _history.Execute(new CreateNodeCommand(_document, duplicateNode));
+        TouchDocument();
+        RebuildFromDocument(duplicateNode.InstanceId, preserveViewport: true);
+    }
+
     private bool HasSelection => SelectedNode is not null;
 
     // ── Move ─────────────────────────────────────────────────────────────────
@@ -383,16 +406,16 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         SchemaVersion = document.SchemaVersion,
         EngineVersion = document.EngineVersion,
         MinimumEngineVersion = document.MinimumEngineVersion,
-        Nodes = document.Nodes.Select(CloneNode).ToList(),
+        Nodes = document.Nodes.Select(n => CloneNode(n, null)).ToList(),
         Connections = document.Connections.Select(CloneConnection).ToList(),
         CanvasOffsetX = document.CanvasOffsetX,
         CanvasOffsetY = document.CanvasOffsetY,
         CanvasZoom = document.CanvasZoom
     };
 
-    private static FlowNode CloneNode(FlowNode node) => new()
+    private static FlowNode CloneNode(FlowNode node, Guid? newId = null) => new()
     {
-        InstanceId = node.InstanceId,
+        InstanceId = newId ?? node.InstanceId,
         TypeId = node.TypeId,
         X = node.X,
         Y = node.Y,

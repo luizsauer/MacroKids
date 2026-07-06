@@ -146,24 +146,21 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="0,3">
-                          <TextBlock Text="{Binding Label}" Foreground="#E2E8F0" FontSize="10" FontFamily="Nunito" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                          <TextBlock Text="{Binding Label}" Foreground="#E2E8F0" FontSize="10" FontFamily="Nunito" VerticalAlignment="Center" Margin="0,0,5,0" Width="60" TextTrimming="CharacterEllipsis"/>
                           
-                          <TextBox Width="75"
-                                   Height="22"
-                                   Background="#0F172A"
-                                   Foreground="White"
-                                   BorderThickness="0"
-                                   Padding="4,2"
-                                   FontSize="10"
-                                   FontFamily="Nunito"
-                                   VerticalContentAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.Resources>
-                              <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4"/>
-                              </Style>
-                            </TextBox.Resources>
+                          <!-- TextBox comum -->
+                          <TextBox Width="85" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center" Text="{Binding ValueText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsTextInput, Converter={StaticResource BoolToVisibility}}">
+                            <TextBox.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></TextBox.Resources>
+                          </TextBox>
+
+                          <!-- ComboBox Dropdown -->
+                          <ComboBox Width="85" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center" ItemsSource="{Binding Options}" SelectedItem="{Binding Value, Mode=TwoWay}" Visibility="{Binding IsDropdown, Converter={StaticResource BoolToVisibility}}">
+                            <ComboBox.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></ComboBox.Resources>
+                          </ComboBox>
+
+                          <!-- TextBox especial para Captura de Teclas -->
+                          <TextBox Width="85" Height="22" Background="#1E1B4B" Foreground="#38BDF8" BorderBrush="#38BDF8" BorderThickness="1" Padding="4,2" FontSize="10" FontFamily="Nunito" FontWeight="Bold" VerticalContentAlignment="Center" VerticalAlignment="Center" IsReadOnly="True" Cursor="Hand" Text="{Binding ValueText, Mode=OneWay}" ToolTip="Clique aqui e pressione qualquer tecla no teclado" PreviewKeyDown="KeyCaptureTextBox_PreviewKeyDown" Visibility="{Binding IsKeyCapture, Converter={StaticResource BoolToVisibility}}">
+                            <TextBox.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></TextBox.Resources>
                           </TextBox>
                         </StackPanel>
                       </DataTemplate>
