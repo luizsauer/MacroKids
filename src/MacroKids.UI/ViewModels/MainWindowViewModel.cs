@@ -21,6 +21,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly INodeRegistry _nodeRegistry;
     private FlowExecutor? _activeExecutor;
     private NodeCanvasViewModel? _observedCanvas;
+    private readonly ImageSource? _logoIcon;
 
     [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.2-dev";
     [ObservableProperty] private string _statusMessage = "Pronto";
@@ -51,10 +52,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(WaitMetadata.Instance, new WaitExecutor());
 
         _nodeRegistry = registry;
+        _logoIcon = LoadIcon("MacroKids-MiniLogo.png");
 
-        Languages.Add(new LanguageOption("Português", "pt-BR", "pack://siteoforigin:,,,/Assets/brazil.png"));
-        Languages.Add(new LanguageOption("English", "en", "pack://siteoforigin:,,,/Assets/usa.png"));
-        Languages.Add(new LanguageOption("Español", "es", "pack://siteoforigin:,,,/Assets/spain.png"));
+        Languages.Add(new LanguageOption("Português", "pt-BR", "brazil.png"));
+        Languages.Add(new LanguageOption("English", "en", "usa.png"));
+        Languages.Add(new LanguageOption("Español", "es", "spain.png"));
         SelectedLanguage = Languages.FirstOrDefault(l => l.Code == LocalizationManager.Instance.CurrentCulture) ?? Languages[0];
 
         foreach (var nodeMeta in _nodeRegistry.GetAll())
@@ -86,6 +88,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     public ImageSource ThemeIcon => LoadThemeIcon();
+    public ImageSource? LogoIcon => _logoIcon;
 
     public bool CanPickMoveMouseCoordinates => SelectedNode?.Metadata.TypeId == "mouse.move";
 
@@ -126,11 +129,33 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private static ImageSource LoadThemeIcon()
     {
-        var iconUri = (Application.Current?.Resources.MergedDictionaries.Any(d => d.Source?.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase) == true) ?? false)
-            ? "pack://siteoforigin:,,,/Assets/moon.png"
-            : "pack://siteoforigin:,,,/Assets/sun.png";
+        var fileName = (Application.Current?.Resources.MergedDictionaries.Any(d => d.Source?.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase) == true) ?? false)
+            ? "moon.png"
+            : "sun.png";
 
-        return new System.Windows.Media.Imaging.BitmapImage(new Uri(iconUri, UriKind.Absolute));
+        return LoadIcon(fileName) ?? new DrawingImage();
+    }
+
+    private static ImageSource? LoadIcon(string fileName)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", fileName);
+            if (!System.IO.File.Exists(path))
+                return null;
+
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bitmap.UriSource = new Uri(path, UriKind.Absolute);
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private IEnumerable<IGrouping<NodeCategory, NodeMetadata>> GetGroupedNodes()

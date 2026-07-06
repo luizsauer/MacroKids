@@ -29,10 +29,13 @@
     <None Update="Translations\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="..\..\Assets\*.*">
-      <Link>Assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <MacroKidsAssets Include="..\..\Assets\*.*" />
   </ItemGroup>
 
+  <Target Name="CopyMacroKidsAssets" AfterTargets="Build">
+    <Copy
+      SourceFiles="@(MacroKidsAssets)"
+      DestinationFiles="@(MacroKidsAssets->'$(OutDir)Assets\%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
 </Project>
