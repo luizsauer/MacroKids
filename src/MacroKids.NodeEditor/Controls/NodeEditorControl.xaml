@@ -131,8 +131,10 @@
                           <TextBlock Text="{Binding Label}" Foreground="#E2E8F0" FontSize="10" FontFamily="Nunito" VerticalAlignment="Center" Margin="0,0,5,0"/>
                           
                           <!-- Dark inline input value parameter box -->
-                          <TextBox Width="75" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center"
-                                    Text="{Binding Label, Mode=TwoWay}"> <!-- Simple binding for demonstration to build successfully -->
+                          <TextBox Width="75" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center">
+                            <TextBox.Text>
+                              <Binding Path="DataContext[Id]" RelativeSource="{RelativeSource AncestorType=Border}" Mode="TwoWay"/>
+                            </TextBox.Text>
                             <TextBox.Resources>
                               <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="4"/>

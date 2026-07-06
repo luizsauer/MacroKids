@@ -32,6 +32,17 @@ public sealed partial class NodeViewModel : ObservableObject
     /// </summary>
     public Dictionary<string, object?> PinValues { get; } = [];
 
+    // Helper property to enable direct two-way binding: {Binding Parameters[ms]}
+    public object? this[string pinId]
+    {
+        get => PinValues.TryGetValue(pinId, out var val) ? val : null;
+        set
+        {
+            PinValues[pinId] = value;
+            OnPropertyChanged("Item[]");
+        }
+    }
+
     public NodeViewModel(FlowNode node, NodeMetadata metadata)
     {
         InstanceId = node.InstanceId;
@@ -43,6 +54,13 @@ public sealed partial class NodeViewModel : ObservableObject
 
         foreach (var kv in node.PinValues)
             PinValues[kv.Key] = kv.Value;
+            
+        // Populate default values from pins metadata if not set
+        foreach (var pin in metadata.Pins.Where(p => p.Direction == PinDirection.Input))
+        {
+            if (!PinValues.ContainsKey(pin.Id))
+                PinValues[pin.Id] = pin.DefaultValue;
+        }
     }
 
     /// <summary>Project the current VM state back into a <see cref="FlowNode"/> for serialization.</summary>
