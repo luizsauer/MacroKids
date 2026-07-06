@@ -1,12 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using MacroKids.Core.Interfaces;
 using MacroKids.Core.Models;
 
 namespace MacroKids.Nodes.Keyboard;
 
-/// <summary>
-/// Metadata definition for Press Key block.
-/// </summary>
 public static class PressKeyMetadata
 {
     public static readonly NodeMetadata Instance = new()
@@ -16,7 +16,7 @@ public static class PressKeyMetadata
         Description = "Pressiona e solta uma tecla no teclado do computador.",
         Category = NodeCategory.Keyboard,
         IconKey = "Keyboard",
-        NodeVersion = new Version(1, 0, 0),
+        NodeVersion = new Version(1, 1, 0),
         Pins = [
             new NodePin { Id = "in",    Label = "In",        Direction = PinDirection.Input,  DataType = typeof(bool) },
             new NodePin { Id = "key",   Label = "Tecla",     Direction = PinDirection.Input,  DataType = typeof(string), DefaultValue = "A", InputType = PinInputType.KeyCapture },
@@ -38,7 +38,19 @@ public class PressKeyExecutor : INodeExecutor
     [StructLayout(LayoutKind.Explicit)]
     private struct InputUnion
     {
+        [FieldOffset(0)] public MOUSEINPUT mi;
         [FieldOffset(0)] public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -60,6 +72,7 @@ public class PressKeyExecutor : INodeExecutor
     private const int INPUT_KEYBOARD = 1;
     private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
+
     public async Task<NodeExecutionResult> ExecuteAsync(
         FlowNode node,
         IExecutionContext context,
