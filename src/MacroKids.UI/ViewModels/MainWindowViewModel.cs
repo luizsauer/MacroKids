@@ -52,9 +52,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         _nodeRegistry = registry;
 
-        Languages.Add(new LanguageOption("Português", "pt-BR", "pack://application:,,,/Assets/brazil.png"));
-        Languages.Add(new LanguageOption("English", "en", "pack://application:,,,/Assets/usa.png"));
-        Languages.Add(new LanguageOption("Español", "es", "pack://application:,,,/Assets/spain.png"));
+        Languages.Add(new LanguageOption("Português", "pt-BR", "pack://siteoforigin:,,,/Assets/brazil.png"));
+        Languages.Add(new LanguageOption("English", "en", "pack://siteoforigin:,,,/Assets/usa.png"));
+        Languages.Add(new LanguageOption("Español", "es", "pack://siteoforigin:,,,/Assets/spain.png"));
         SelectedLanguage = Languages.FirstOrDefault(l => l.Code == LocalizationManager.Instance.CurrentCulture) ?? Languages[0];
 
         foreach (var nodeMeta in _nodeRegistry.GetAll())
@@ -127,8 +127,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private static ImageSource LoadThemeIcon()
     {
         var iconUri = (Application.Current?.Resources.MergedDictionaries.Any(d => d.Source?.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase) == true) ?? false)
-            ? "pack://application:,,,/Assets/moon.png"
-            : "pack://application:,,,/Assets/sun.png";
+            ? "pack://siteoforigin:,,,/Assets/moon.png"
+            : "pack://siteoforigin:,,,/Assets/sun.png";
 
         return new System.Windows.Media.Imaging.BitmapImage(new Uri(iconUri, UriKind.Absolute));
     }
