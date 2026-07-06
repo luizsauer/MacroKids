@@ -217,11 +217,15 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             return;
         }
 
+        const double padding = 80.0;
         var minX = Nodes.Min(n => n.X);
         var minY = Nodes.Min(n => n.Y);
-        OffsetX = -minX + 80;
-        OffsetY = -minY + 80;
-        Zoom = 1.0;
+
+        // Viewport formula: viewport_pos = canvas_pos * zoom + offset
+        // To make (minX, minY) appear at screen (padding, padding):
+        //   padding = minX * Zoom + OffsetX  →  OffsetX = padding - minX * Zoom
+        OffsetX = padding - minX * Zoom;
+        OffsetY = padding - minY * Zoom;
     }
 
     [RelayCommand]
@@ -232,9 +236,9 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     public void SetZoom(double newZoom) =>
         Zoom = Math.Clamp(newZoom, MinZoom, MaxZoom);
 
-    public void ZoomIn() => SetZoom(Zoom * 1.15);
-    public void ZoomOut() => SetZoom(Zoom / 1.15);
-    public void ZoomReset() { Zoom = 1.0; OffsetX = 0; OffsetY = 0; }
+    [RelayCommand] private void ZoomIn() => SetZoom(Zoom * 1.15);
+    [RelayCommand] private void ZoomOut() => SetZoom(Zoom / 1.15);
+    [RelayCommand] private void ZoomReset() { Zoom = 1.0; OffsetX = 0; OffsetY = 0; }
 
     // ── Undo / Redo ───────────────────────────────────────────────────────────
 

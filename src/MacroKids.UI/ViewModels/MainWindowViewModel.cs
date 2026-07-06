@@ -10,7 +10,10 @@ using MacroKids.Core.Models;
 using MacroKids.NodeEditor.ViewModels;
 using MacroKids.Nodes.Flow;
 using MacroKids.Nodes.Keyboard;
+using MacroKids.Nodes.Logic;
 using MacroKids.Nodes.Mouse;
+using MacroKids.Nodes.System;
+using MacroKids.Nodes.Variables;
 using MacroKids.Runtime;
 using MacroKids.UI.Services;
 using MacroKids.UI.Views;
@@ -45,12 +48,27 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MainWindowViewModel()
     {
         var registry = new NodeRegistry();
-        registry.Register(MoveMouseMetadata.Instance, new MoveMouseExecutor());
-        registry.Register(LeftClickMetadata.Instance, new LeftClickExecutor());
-        registry.Register(RightClickMetadata.Instance, new RightClickExecutor());
-        registry.Register(PressKeyMetadata.Instance, new PressKeyExecutor());
-        registry.Register(TypeTextMetadata.Instance, new TypeTextExecutor());
-        registry.Register(WaitMetadata.Instance, new WaitExecutor());
+        // Mouse
+        registry.Register(MoveMouseMetadata.Instance,   new MoveMouseExecutor());
+        registry.Register(LeftClickMetadata.Instance,   new LeftClickExecutor());
+        registry.Register(RightClickMetadata.Instance,  new RightClickExecutor());
+        registry.Register(MouseScrollMetadata.Instance, new MouseScrollExecutor());
+        registry.Register(DoubleClickMetadata.Instance, new DoubleClickExecutor());
+        // Keyboard
+        registry.Register(PressKeyMetadata.Instance,  new PressKeyExecutor());
+        registry.Register(TypeTextMetadata.Instance,  new TypeTextExecutor());
+        registry.Register(HoldKeyMetadata.Instance,   new HoldKeyExecutor());
+        registry.Register(ComboKeyMetadata.Instance,  new ComboKeyExecutor());
+        // Flow / Loops
+        registry.Register(WaitMetadata.Instance,       new WaitExecutor());
+        registry.Register(RepeatLoopMetadata.Instance, new RepeatLoopExecutor());
+        registry.Register(ForEachMetadata.Instance,    new ForEachExecutor());
+        // Logic
+        registry.Register(IfConditionMetadata.Instance, new IfConditionExecutor());
+        // Variables
+        registry.Register(SetVariableMetadata.Instance,       new SetVariableExecutor());
+        registry.Register(GetVariableMetadata.Instance,       new GetVariableExecutor());
+        registry.Register(IncrementVariableMetadata.Instance, new IncrementVariableExecutor());
 
         _nodeRegistry = registry;
         Languages.Add(new LanguageOption("Português", "pt-BR", "brazil.png"));
@@ -173,13 +191,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         query = SelectedModule switch
         {
+            "Blocks"    => query.Where(n => n.Category is NodeCategory.Mouse or NodeCategory.Keyboard or NodeCategory.Gamepad),
             "Variables" => query.Where(n => n.Category == NodeCategory.Variables),
             "Functions" => query.Where(n => n.Category is NodeCategory.Logic or NodeCategory.Loops),
-            "Images" => query.Where(n => n.Category == NodeCategory.Images),
-            "OCR" => query.Where(n => n.Category == NodeCategory.Ocr),
-            "AI" => query.Where(n => n.Category == NodeCategory.Ai),
-            "Events" => query.Where(n => n.Category == NodeCategory.Events),
-            "Settings" => query.Where(n => n.Category is NodeCategory.System or NodeCategory.Window or NodeCategory.File or NodeCategory.Network),
+            "Images"    => query.Where(n => n.Category == NodeCategory.Images),
+            "OCR"       => query.Where(n => n.Category == NodeCategory.Ocr),
+            "AI"        => query.Where(n => n.Category == NodeCategory.Ai),
+            "Events"    => query.Where(n => n.Category == NodeCategory.Events),
+            "Settings"  => query.Where(n => n.Category is NodeCategory.System or NodeCategory.Window or NodeCategory.File or NodeCategory.Network),
             _ => query
         };
 
