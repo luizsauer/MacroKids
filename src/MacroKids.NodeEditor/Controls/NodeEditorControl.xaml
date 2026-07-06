@@ -84,17 +84,16 @@
               
               <Grid Margin="12,10">
                 <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto"/> <!-- Input Pin Left -->
-                  <ColumnDefinition Width="*"/>    <!-- Central Content Area -->
-                  <ColumnDefinition Width="Auto"/> <!-- Output Pin Right -->
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Left Input Pin (Projecting slightly outside left border) -->
-                <ItemsControl Grid.Column="0" ItemsSource="{Binding Metadata.Inputs}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding InputPins}" HorizontalAlignment="Left" VerticalAlignment="Center">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <ContentControl Style="{StaticResource PinDotStyle}" Margin="-18,0,0,0"
-                                      Tag="{Binding}"
                                       PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
                                       PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
                     </DataTemplate>
@@ -107,17 +106,23 @@
                   <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,6"/>
                   
                   <!-- Parameter Inputs list -->
-                  <ItemsControl ItemsSource="{Binding Metadata.Inputs}">
+                  <ItemsControl ItemsSource="{Binding InputPins}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="0,3">
                           <TextBlock Text="{Binding Label}" Foreground="#E2E8F0" FontSize="10" FontFamily="Nunito" VerticalAlignment="Center" Margin="0,0,5,0"/>
                           
-                          <!-- Dark inline input value parameter box -->
-                          <TextBox Width="75" Height="22" Background="#0F172A" Foreground="White" BorderThickness="0" Padding="4,2" FontSize="10" FontFamily="Nunito" VerticalContentAlignment="Center" VerticalAlignment="Center">
-                            <TextBox.Text>
-                              <Binding Path="DataContext[Id]" RelativeSource="{RelativeSource AncestorType=Border}" Mode="TwoWay"/>
-                            </TextBox.Text>
+                          <TextBox Width="75"
+                                   Height="22"
+                                   Background="#0F172A"
+                                   Foreground="White"
+                                   BorderThickness="0"
+                                   Padding="4,2"
+                                   FontSize="10"
+                                   FontFamily="Nunito"
+                                   VerticalContentAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                             <TextBox.Resources>
                               <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="4"/>
@@ -131,11 +136,10 @@
                 </StackPanel>
 
                 <!-- Right Output Pin (Projecting slightly outside right border) -->
-                <ItemsControl Grid.Column="2" ItemsSource="{Binding Metadata.Outputs}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ItemsControl Grid.Column="2" ItemsSource="{Binding OutputPins}" HorizontalAlignment="Right" VerticalAlignment="Center">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <ContentControl Style="{StaticResource PinDotStyle}" Margin="0,0,-18,0"
-                                      Tag="{Binding}"
                                       PreviewMouseLeftButtonDown="Pin_PreviewMouseLeftButtonDown"
                                       PreviewMouseLeftButtonUp="Pin_PreviewMouseLeftButtonUp"/>
                     </DataTemplate>

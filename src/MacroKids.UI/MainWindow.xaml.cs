@@ -55,16 +55,31 @@ public partial class MainWindow : Window
         EditorView.IsEnabled = !EditorView.IsEnabled;
     }
 
-    private void Language_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void LanguageButton_Click(object sender, RoutedEventArgs e)
     {
-        if (DataContext == null) return;
+        if (sender is not FrameworkElement element || DataContext is not ViewModels.MainWindowViewModel vm)
+            return;
 
-        if (sender is ComboBox comboBox && comboBox.SelectedItem is ComboBoxItem item && item.Tag is string cultureCode)
+        var menu = new ContextMenu();
+        foreach (var language in vm.Languages)
         {
-            if (DataContext is ViewModels.MainWindowViewModel vm)
+            var item = new MenuItem
             {
-                vm.ChangeLanguageCommand.Execute(cultureCode);
-            }
+                Header = new Image
+                {
+                    Source = language.Icon,
+                    Width = 24,
+                    Height = 24
+                },
+                ToolTip = language.Name
+            };
+
+            item.Click += (_, _) => vm.ChangeLanguageCommand.Execute(language.Code);
+            menu.Items.Add(item);
         }
+
+        menu.PlacementTarget = element;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
     }
 }

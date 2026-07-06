@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MacroKids.Core.Commands;
@@ -25,9 +27,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private string _selectedModule = "Blocks";
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isDarkTheme = true;
+    [ObservableProperty] private LanguageOption? _selectedLanguage;
 
     public ObservableCollection<ProjectPageViewModel> Pages { get; } = [];
     public ObservableCollection<NodeMetadata> AvailableNodes { get; } = [];
+    public ObservableCollection<LanguageOption> Languages { get; } = [];
 
     public NodeCanvasViewModel CanvasViewModel => SelectedPage?.CanvasViewModel ?? Pages.First().CanvasViewModel;
     public NodeViewModel? SelectedNode => CanvasViewModel.SelectedNode;
@@ -47,6 +51,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(WaitMetadata.Instance, new WaitExecutor());
 
         _nodeRegistry = registry;
+
+        Languages.Add(new LanguageOption("Português", "pt-BR", "pack://application:,,,/Assets/brazil.png"));
+        Languages.Add(new LanguageOption("English", "en", "pack://application:,,,/Assets/usa.png"));
+        Languages.Add(new LanguageOption("Español", "es", "pack://application:,,,/Assets/spain.png"));
+        SelectedLanguage = Languages.FirstOrDefault(l => l.Code == LocalizationManager.Instance.CurrentCulture) ?? Languages[0];
 
         foreach (var nodeMeta in _nodeRegistry.GetAll())
             AvailableNodes.Add(nodeMeta);
@@ -75,6 +84,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var pageTitle = SelectedPage?.Title ?? GetText("TabMyProject", "My Project");
         WindowTitle = $"MacroKids - {pageTitle} - v0.1.2-dev";
     }
+
+    public ImageSource ThemeIcon => LoadThemeIcon();
+
+    public bool CanPickMoveMouseCoordinates => SelectedNode?.Metadata.TypeId == "mouse.move";
 
     partial void OnSearchTextChanged(string value) => OnPropertyChanged(nameof(GroupedNodes));
     partial void OnSelectedModuleChanged(string value) => OnPropertyChanged(nameof(GroupedNodes));
@@ -105,7 +118,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void ObservedCanvas_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(NodeCanvasViewModel.SelectedNode))
+        {
             OnPropertyChanged(nameof(SelectedNode));
+            OnPropertyChanged(nameof(CanPickMoveMouseCoordinates));
+        }
+    }
+
+    private static ImageSource LoadThemeIcon()
+    {
+        var iconUri = (Application.Current?.Resources.MergedDictionaries.Any(d => d.Source?.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase) == true) ?? false)
+            ? "pack://application:,,,/Assets/moon.png"
+            : "pack://application:,,,/Assets/sun.png";
+
+        return new System.Windows.Media.Imaging.BitmapImage(new Uri(iconUri, UriKind.Absolute));
     }
 
     private IEnumerable<IGrouping<NodeCategory, NodeMetadata>> GetGroupedNodes()
@@ -200,6 +225,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
 
         ApplyTheme(!IsDarkTheme);
+        OnPropertyChanged(nameof(ThemeIcon));
         StatusMessage = IsDarkTheme ? "Tema escuro ativado." : "Tema claro ativado.";
     }
 
@@ -235,9 +261,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
 
         LocalizationManager.Instance.LoadCulture(cultureCode);
+        SelectedLanguage = Languages.FirstOrDefault(l => l.Code == LocalizationManager.Instance.CurrentCulture) ?? SelectedLanguage;
         OnPropertyChanged(nameof(GroupedNodes));
         UpdateWindowTitle();
         StatusMessage = $"Idioma alterado: {cultureCode}";
+    }
+
+    [RelayCommand]
+    private void PickMoveMouseCoordinates()
+    {
+        if (!CanPickMoveMouseCoordinates || SelectedNode is null)
+            return;
+
+        if (!TryGetCursorPosition(out var point))
+            return;
+
+        SelectedNode["x"] = (int)point.X;
+        SelectedNode["y"] = (int)point.Y;
+        StatusMessage = $"Coordenadas capturadas: {point.X:0}, {point.Y:0}";
     }
 
     [RelayCommand]
@@ -340,5 +381,28 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             _activeExecutor = null;
         }
+    }
+
+    private static bool TryGetCursorPosition(out System.Windows.Point point)
+    {
+        var p = new POINT();
+        if (GetCursorPos(ref p))
+        {
+            point = new System.Windows.Point(p.X, p.Y);
+            return true;
+        }
+
+        point = default;
+        return false;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(ref POINT lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
     }
 }

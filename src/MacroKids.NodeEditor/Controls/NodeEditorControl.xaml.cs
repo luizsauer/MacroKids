@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using MacroKids.Core.Models;
@@ -31,19 +32,22 @@ public partial class NodeEditorControl : UserControl
 
     private void Node_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left && sender is Border border && border.DataContext is NodeViewModel nodeVm)
-        {
-            if (DataContext is NodeCanvasViewModel canvasVm)
-            {
-                canvasVm.SelectNode(nodeVm);
-            }
+        if (e.ChangedButton != MouseButton.Left || sender is not Border border || border.DataContext is not NodeViewModel nodeVm)
+            return;
 
-            _isDraggingNode = true;
-            _draggedNode = nodeVm;
-            _dragStart = e.GetPosition(EditorCanvas);
-            border.CaptureMouse();
-            e.Handled = true;
+        if (ShouldIgnoreDrag(e.OriginalSource as DependencyObject))
+            return;
+
+        if (DataContext is NodeCanvasViewModel canvasVm)
+        {
+            canvasVm.SelectNode(nodeVm);
         }
+
+        _isDraggingNode = true;
+        _draggedNode = nodeVm;
+        _dragStart = e.GetPosition(EditorCanvas);
+        border.CaptureMouse();
+        e.Handled = true;
     }
 
     private void Node_MouseMove(object sender, MouseEventArgs e)
@@ -79,14 +83,13 @@ public partial class NodeEditorControl : UserControl
 
     private void Pin_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement element && element.Tag is NodePin pin && pin.Direction == PinDirection.Output)
+        if (sender is FrameworkElement element && element.DataContext is NodePinViewModel pinVm && pinVm.Direction == PinDirection.Output)
         {
-            // Find parent node view model by checking DataContext of parent elements
             var nodeVm = FindParentDataContext<NodeViewModel>(element);
             if (nodeVm != null)
             {
                 _pendingSourceNode = nodeVm;
-                _pendingSourcePin = pin;
+                _pendingSourcePin = pinVm.Pin;
                 e.Handled = true;
             }
         }
@@ -95,7 +98,7 @@ public partial class NodeEditorControl : UserControl
     private void Pin_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_pendingSourceNode != null && _pendingSourcePin != null &&
-            sender is FrameworkElement element && element.Tag is NodePin targetPin && targetPin.Direction == PinDirection.Input)
+            sender is FrameworkElement element && element.DataContext is NodePinViewModel targetPinVm && targetPinVm.Direction == PinDirection.Input)
         {
             var targetNodeVm = FindParentDataContext<NodeViewModel>(element);
             if (targetNodeVm != null && targetNodeVm.InstanceId != _pendingSourceNode.InstanceId)
@@ -104,7 +107,7 @@ public partial class NodeEditorControl : UserControl
                 {
                     canvasVm.ConnectPins(
                         _pendingSourceNode.InstanceId, _pendingSourcePin.Id,
-                        targetNodeVm.InstanceId, targetPin.Id);
+                        targetNodeVm.InstanceId, targetPinVm.Pin.Id);
                 }
             }
         }
@@ -125,5 +128,18 @@ public partial class NodeEditorControl : UserControl
             current = VisualTreeHelper.GetParent(current);
         }
         return null;
+    }
+
+    private static bool ShouldIgnoreDrag(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is TextBoxBase or ComboBox or ButtonBase)
+                return true;
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return false;
     }
 }

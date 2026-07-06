@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MacroKids.Core.Models;
@@ -32,6 +33,9 @@ public sealed partial class NodeViewModel : ObservableObject
     /// </summary>
     public Dictionary<string, object?> PinValues { get; } = [];
 
+    public ObservableCollection<NodePinViewModel> InputPins { get; } = [];
+    public ObservableCollection<NodePinViewModel> OutputPins { get; } = [];
+
     // Helper property to enable direct two-way binding: {Binding Parameters[ms]}
     public object? this[string pinId]
     {
@@ -60,6 +64,13 @@ public sealed partial class NodeViewModel : ObservableObject
         {
             if (!PinValues.ContainsKey(pin.Id))
                 PinValues[pin.Id] = pin.DefaultValue;
+
+            InputPins.Add(new NodePinViewModel(this, pin));
+        }
+
+        foreach (var pin in metadata.Outputs)
+        {
+            OutputPins.Add(new NodePinViewModel(this, pin));
         }
     }
 
@@ -77,22 +88,18 @@ public sealed partial class NodeViewModel : ObservableObject
 
     public Point GetInputPinPoint(string pinId)
     {
-        // Estimate vertical position of the input pin based on its index using LINQ conversion
         int index = Metadata.Inputs.ToList().FindIndex(p => p.Id == pinId);
         if (index < 0) index = 0;
 
-        // Offset based on template header (approx 36px) + margin spaces (approx 26px each)
         double posY = Y + 48 + (index * 26);
         return new Point(X + 5, posY);
     }
 
     public Point GetOutputPinPoint(string pinId)
     {
-        // Estimate vertical position of the output pin based on its index using LINQ conversion
         int index = Metadata.Outputs.ToList().FindIndex(p => p.Id == pinId);
         if (index < 0) index = 0;
 
-        // Visual header + input area offset + output index spacing
         double inputOffset = Metadata.Inputs.Count() * 26;
         double posY = Y + 48 + inputOffset + (index * 26);
         return new Point(X + 185, posY);

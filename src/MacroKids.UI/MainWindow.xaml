@@ -20,7 +20,7 @@
             <RowDefinition Height="25" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#0C1017" BorderBrush="#1F2937" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="{DynamicResource BrushSurface}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,0,0,1">
             <Grid Margin="10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -33,7 +33,7 @@
                     <TextBlock Text="{Binding Translations[LogoText], Source={x:Static services:LocalizationManager.Instance}}"
                                FontWeight="ExtraBold"
                                FontSize="18"
-                               Foreground="White"
+                               Foreground="{DynamicResource BrushTextPrimary}"
                                VerticalAlignment="Center"
                                FontFamily="Nunito" />
                 </StackPanel>
@@ -102,38 +102,35 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ComboBox SelectionChanged="Language_SelectionChanged"
-                              Width="52"
-                              Height="30"
-                              Margin="0,0,15,0"
-                              Background="#1E293B"
-                              BorderBrush="#334155"
-                              SelectedIndex="0">
-                        <ComboBox.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="6" />
-                            </Style>
-                        </ComboBox.Resources>
-                        <ComboBoxItem Tag="pt-BR" ToolTip="Português">
-                            <Image Source="pack://application:,,,/Assets/brazil.png" Width="20" Height="14" Margin="0" RenderOptions.BitmapScalingMode="HighQuality" />
-                        </ComboBoxItem>
-                        <ComboBoxItem Tag="en" ToolTip="English">
-                            <Image Source="pack://application:,,,/Assets/usa.png" Width="20" Height="14" Margin="0" RenderOptions.BitmapScalingMode="HighQuality" />
-                        </ComboBoxItem>
-                        <ComboBoxItem Tag="es" ToolTip="Español">
-                            <Image Source="pack://application:,,,/Assets/spain.png" Width="20" Height="14" Margin="0" RenderOptions.BitmapScalingMode="HighQuality" />
-                        </ComboBoxItem>
-                    </ComboBox>
-
-                    <Button Command="{Binding ToggleThemeCommand}"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Width="28"
-                            Height="28"
+                    <Button x:Name="LanguageButton"
+                            Click="LanguageButton_Click"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushSurfaceVariant}"
+                            BorderThickness="1"
+                            Width="32"
+                            Height="32"
                             Margin="0,0,15,0"
                             VerticalAlignment="Center"
+                            Padding="0"
+                            ToolTip="Change language">
+                        <Border CornerRadius="16" Width="30" Height="30" ClipToBounds="True">
+                            <Image Source="{Binding SelectedLanguage.Icon}" Stretch="UniformToFill" />
+                        </Border>
+                    </Button>
+
+                    <Button Command="{Binding ToggleThemeCommand}"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushSurfaceVariant}"
+                            BorderThickness="1"
+                            Width="32"
+                            Height="32"
+                            Margin="0,0,15,0"
+                            VerticalAlignment="Center"
+                            Padding="0"
                             ToolTip="Alternar tema">
-                        <Image Source="pack://application:,,,/Assets/moon.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <Border CornerRadius="16" Width="30" Height="30" ClipToBounds="True" Background="{DynamicResource BrushSurface}">
+                            <Image Source="{Binding ThemeIcon}" Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Border>
                     </Button>
 
                     <Button Command="{Binding ExportProjectCommand}"
@@ -166,7 +163,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Background="#0F172A" BorderBrush="#1F2937" BorderThickness="0,0,0,1" Padding="15,0">
+        <Border Grid.Row="1" Background="{DynamicResource BrushSurfaceVariant}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,0,0,1" Padding="15,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -182,9 +179,9 @@
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              Width="190"
                              Height="28"
-                             Background="#1E293B"
-                             Foreground="White"
-                             BorderBrush="#334155"
+                             Background="{DynamicResource BrushSurface}"
+                             Foreground="{DynamicResource BrushTextPrimary}"
+                             BorderBrush="{DynamicResource BrushSurfaceVariant}"
                              BorderThickness="1"
                              Padding="25,4,8,4"
                              FontSize="12"
@@ -223,15 +220,15 @@
                 </Grid>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
-                    <Button Content="⛶" Command="{Binding CanvasViewModel.FitToContentCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Centralizar visualização" />
-                    <Button Content="🌐" Command="{Binding CanvasViewModel.ToggleGridCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Alternar grade" />
+                    <Button Content="⛶" Command="{Binding CanvasViewModel.FitToContentCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Centralizar visualização" />
+                    <Button Content="🌐" Command="{Binding CanvasViewModel.ToggleGridCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="15" Padding="6,4" ToolTip="Alternar grade" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
-                    <Button Content="↶" Command="{Binding CanvasViewModel.UndoCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="18" Padding="5,0" />
-                    <Button Content="↷" Command="{Binding CanvasViewModel.RedoCommand}" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="18" Padding="5,0" />
+                    <Button Content="↶" Command="{Binding CanvasViewModel.UndoCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="18" Padding="5,0" />
+                    <Button Content="↷" Command="{Binding CanvasViewModel.RedoCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="18" Padding="5,0" />
 
-                    <Border Width="1" Background="#1E293B" Margin="10,6" />
+                    <Border Width="1" Background="{DynamicResource BrushSurfaceVariant}" Margin="10,6" />
 
                     <Button Command="{Binding RunFlowCommand}" Background="#15803D" Foreground="White" FontWeight="Bold" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
                         <Button.Resources>
@@ -245,7 +242,7 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Command="{Binding DebugFlowCommand}" Background="#1E293B" Foreground="White" Padding="12,4" BorderThickness="1" BorderBrush="#334155" FontSize="11" Margin="2,0" Height="28">
+                    <Button Command="{Binding DebugFlowCommand}" Background="{DynamicResource BrushSurface}" Foreground="{DynamicResource BrushTextPrimary}" Padding="12,4" BorderThickness="1" BorderBrush="{DynamicResource BrushSurfaceVariant}" FontSize="11" Margin="2,0" Height="28">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="4" />
@@ -271,17 +268,17 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="-" Command="{Binding CanvasViewModel.ZoomOutCommand}" Background="Transparent" Foreground="White" FontSize="14" BorderThickness="0" Padding="5" />
-                    <TextBlock Text="100%" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" Margin="8,0" FontFamily="Nunito" />
-                    <Button Content="+" Command="{Binding CanvasViewModel.ZoomInCommand}" Background="Transparent" Foreground="White" FontSize="14" BorderThickness="0" Padding="5" />
+                    <Button Content="-" Command="{Binding CanvasViewModel.ZoomOutCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextPrimary}" FontSize="14" BorderThickness="0" Padding="5" />
+                    <TextBlock Text="100%" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="8,0" FontFamily="Nunito" />
+                    <Button Content="+" Command="{Binding CanvasViewModel.ZoomInCommand}" Background="Transparent" Foreground="{DynamicResource BrushTextPrimary}" FontSize="14" BorderThickness="0" Padding="5" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
-                    <Button Click="SearchCanvas_Click" Content="🔍" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Focar busca" />
-                    <Button Command="{Binding SaveProjectCommand}" Content="📤" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Salvar projeto" />
-                    <Button Click="ConnectLink_Click" Content="🔗" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Modo de ligação" />
-                    <Button Click="Fullscreen_Click" Content="⛶" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Tela cheia" />
-                    <Button Click="LockCanvas_Click" Content="🔒" Background="Transparent" Foreground="#94A3B8" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Bloquear canvas" />
+                    <Button Click="SearchCanvas_Click" Content="🔍" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Focar busca" />
+                    <Button Command="{Binding SaveProjectCommand}" Content="📤" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Salvar projeto" />
+                    <Button Click="ConnectLink_Click" Content="🔗" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Modo de ligação" />
+                    <Button Click="Fullscreen_Click" Content="⛶" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Tela cheia" />
+                    <Button Click="LockCanvas_Click" Content="🔒" Background="Transparent" Foreground="{DynamicResource BrushTextSecondary}" BorderThickness="0" FontSize="13" Padding="6,4" ToolTip="Bloquear canvas" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -294,51 +291,51 @@
                 <ColumnDefinition Width="320" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="#0C1017" BorderBrush="#1F2937" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="{DynamicResource BrushSurface}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,0,1,0">
                 <StackPanel Margin="0,15">
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Blocks" Foreground="White" Background="#1E293B" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Blocks" Foreground="{DynamicResource BrushTextPrimary}" Background="{DynamicResource BrushSurfaceVariant}" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="🧩" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleBlocks], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Variables" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Variables" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="𝔁" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleVariables], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Functions" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Functions" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="𝒇𝔁" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleFunctions], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Images" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Images" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="🖼️" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleImages], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="OCR" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="OCR" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="🔍" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleOCR], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="AI" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="AI" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="✨" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleAI], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Events" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Events" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="⚡" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleEvents], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Settings" Foreground="#94A3B8" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
+                    <Button Command="{Binding SelectModuleCommand}" CommandParameter="Settings" Foreground="{DynamicResource BrushTextSecondary}" Background="Transparent" BorderThickness="0" Height="65" Margin="4" Padding="0,8">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="⚙️" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Translations[ModuleSettings], Source={x:Static services:LocalizationManager.Instance}}" FontSize="11" HorizontalAlignment="Center" FontFamily="Nunito" />
@@ -347,12 +344,12 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="1" Background="#0F172A" BorderBrush="#1F2937" BorderThickness="0,0,1,0" Padding="10">
+            <Border Grid.Column="1" Background="{DynamicResource BrushSurfaceVariant}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,0,1,0" Padding="10">
                 <ListBox ItemsSource="{Binding GroupedNodes}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="0,5">
-                                <TextBlock Text="{Binding Key}" FontSize="12" FontWeight="Bold" Foreground="#38BDF8" Margin="0,5" FontFamily="Nunito" />
+                                <TextBlock Text="{Binding Key}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource BrushPrimary}" Margin="0,5" FontFamily="Nunito" />
                                 <ItemsControl ItemsSource="{Binding}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -397,7 +394,7 @@
                                       x:Name="EditorView"
                                       DataContext="{Binding CanvasViewModel}" />
 
-            <Border Grid.Column="3" Background="#0F172A" BorderBrush="#1F2937" BorderThickness="1,0,0,0" Padding="14">
+            <Border Grid.Column="3" Background="{DynamicResource BrushSurfaceVariant}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="1,0,0,0" Padding="14">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -405,7 +402,7 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Inspector"
-                               Foreground="White"
+                               Foreground="{DynamicResource BrushTextPrimary}"
                                FontSize="13"
                                FontWeight="Bold"
                                FontFamily="Nunito"
@@ -413,7 +410,7 @@
 
                     <Grid Grid.Row="1">
                         <TextBlock Text="Select a block to edit its properties."
-                                   Foreground="#64748B"
+                                   Foreground="{DynamicResource BrushTextSecondary}"
                                    TextWrapping="Wrap"
                                    FontFamily="Nunito">
                             <TextBlock.Style>
@@ -432,40 +429,50 @@
                             <ContentControl.ContentTemplate>
                                 <DataTemplate>
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Metadata.Name}" Foreground="White" FontSize="18" FontWeight="Bold" FontFamily="Nunito" />
-                                        <TextBlock Text="{Binding Metadata.Description}" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,4,0,12" FontFamily="Nunito" />
-                                        <TextBlock Text="{Binding Metadata.Category}" Foreground="#38BDF8" FontSize="11" Margin="0,0,0,12" FontFamily="Nunito" />
+                                        <TextBlock Text="{Binding Metadata.Name}" Foreground="{DynamicResource BrushTextPrimary}" FontSize="18" FontWeight="Bold" FontFamily="Nunito" />
+                                        <TextBlock Text="{Binding Metadata.Description}" Foreground="{DynamicResource BrushTextSecondary}" TextWrapping="Wrap" Margin="0,4,0,12" FontFamily="Nunito" />
+                                        <TextBlock Text="{Binding Metadata.Category}" Foreground="{DynamicResource BrushPrimary}" FontSize="11" Margin="0,0,0,12" FontFamily="Nunito" />
 
                                         <CheckBox Content="Disabled"
                                                   IsChecked="{Binding IsDisabled, Mode=TwoWay}"
-                                                  Foreground="White"
+                                                  Foreground="{DynamicResource BrushTextPrimary}"
                                                   Margin="0,0,0,10" />
 
-                                        <TextBlock Text="Comment" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,4" />
+                                        <TextBlock Text="Comment" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,4" />
                                         <TextBox Text="{Binding Comment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 Background="#1E293B"
-                                                 Foreground="White"
-                                                 BorderBrush="#334155"
+                                                 Background="{DynamicResource BrushSurface}"
+                                                 Foreground="{DynamicResource BrushTextPrimary}"
+                                                 BorderBrush="{DynamicResource BrushSurfaceVariant}"
                                                  BorderThickness="1"
                                                  Padding="8,6"
                                                  Margin="0,0,0,12" />
 
-                                        <TextBlock Text="Inputs" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,6" />
-                                        <ItemsControl ItemsSource="{Binding Metadata.Inputs}">
+                                        <TextBlock Text="Inputs" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" Margin="0,0,0,6" />
+                                        <ItemsControl ItemsSource="{Binding InputPins}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Margin="0,0,0,8">
-                                                        <TextBlock Text="{Binding Label}" Foreground="White" FontSize="11" Margin="0,0,0,3" />
-                                                        <TextBox Background="#1E293B"
-                                                                 Foreground="White"
-                                                                 BorderBrush="#334155"
+                                                        <TextBlock Text="{Binding Label}" Foreground="{DynamicResource BrushTextPrimary}" FontSize="11" Margin="0,0,0,3" />
+                                                        <TextBox Background="{DynamicResource BrushSurface}"
+                                                                 Foreground="{DynamicResource BrushTextPrimary}"
+                                                                 BorderBrush="{DynamicResource BrushSurfaceVariant}"
                                                                  BorderThickness="1"
                                                                  Padding="8,6"
-                                                                 Text="{Binding DataContext[Id], RelativeSource={RelativeSource AncestorType=ContentControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                 Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+
+                                        <Button Content="Capture mouse position"
+                                                Command="{Binding DataContext.PickMoveMouseCoordinatesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                Visibility="{Binding DataContext.CanPickMoveMouseCoordinates, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}"
+                                                Background="{DynamicResource BrushSurface}"
+                                                Foreground="{DynamicResource BrushTextPrimary}"
+                                                BorderBrush="{DynamicResource BrushSurfaceVariant}"
+                                                BorderThickness="1"
+                                                Padding="10,6"
+                                                Margin="0,0,0,12" />
 
                                         <Button Content="Delete block"
                                                 Command="{Binding DataContext.CanvasViewModel.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -483,8 +490,8 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="3" Background="#0C1017" BorderBrush="#1F2937" BorderThickness="0,1,0,0" Padding="15,2">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" FontFamily="Nunito" />
+        <Border Grid.Row="3" Background="{DynamicResource BrushSurface}" BorderBrush="{DynamicResource BrushSurfaceVariant}" BorderThickness="0,1,0,0" Padding="15,2">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource BrushTextSecondary}" FontSize="11" VerticalAlignment="Center" FontFamily="Nunito" />
         </Border>
     </Grid>
 </Window>
