@@ -35,6 +35,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private LanguageOption? _selectedLanguage;
     [ObservableProperty] private bool _isLanguageMenuOpen;
     [ObservableProperty] private bool _isLogExpanded;
+    [ObservableProperty] private bool _isRecordingMacro;
+    
+    private bool CanRecord => !IsRecordingMacro;
+
     public ObservableCollection<string> ExecutionLogs { get; } = [];
     public string ExecutionLogsText => string.Join(Environment.NewLine, ExecutionLogs);
 
@@ -216,14 +220,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         query = SelectedModule switch
         {
-            "Blocks"    => query.Where(n => n.Category is NodeCategory.Mouse or NodeCategory.Keyboard or NodeCategory.Gamepad),
+            "Blocks"    => query.Where(n => n.Category is NodeCategory.Mouse or NodeCategory.Keyboard or NodeCategory.Gamepad or NodeCategory.System),
             "Variables" => query.Where(n => n.Category == NodeCategory.Variables),
             "Functions" => query.Where(n => n.Category is NodeCategory.Logic or NodeCategory.Loops),
             "Images"    => query.Where(n => n.Category == NodeCategory.Images),
             "OCR"       => query.Where(n => n.Category == NodeCategory.Ocr),
             "AI"        => query.Where(n => n.Category == NodeCategory.Ai),
             "Events"    => query.Where(n => n.Category == NodeCategory.Events),
-            "Settings"  => query.Where(n => n.Category is NodeCategory.System or NodeCategory.Window or NodeCategory.File or NodeCategory.Network),
+            "Settings"  => query.Where(n => n.Category is NodeCategory.Window or NodeCategory.File or NodeCategory.Network),
             _ => query
         };
 
@@ -450,9 +454,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         StatusMessage = GetText("StatusExecutionStopped", "Execution stopped.");
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanRecord))]
     private void RecordMacro()
     {
+        IsRecordingMacro = true;
+        RecordMacroCommand.NotifyCanExecuteChanged();
+
         StatusMessage = "Iniciando gravador global de macro...";
         MacroKids.UI.Services.MacroRecorder.Start();
 
@@ -478,6 +485,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
                 // Importa as acoes gravadas para o canvas da pagina selecionada
                 CanvasViewModel.ImportRecordedActions(actions);
+
+                IsRecordingMacro = false;
+                RecordMacroCommand.NotifyCanExecuteChanged();
 
                 StatusMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, "Macro gravada com sucesso! {0} blocos gerados.", actions.Count);
             });
