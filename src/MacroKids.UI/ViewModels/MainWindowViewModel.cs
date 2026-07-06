@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,6 +12,7 @@ using MacroKids.Nodes.Keyboard;
 using MacroKids.Nodes.Mouse;
 using MacroKids.Runtime;
 using MacroKids.UI.Services;
+using MacroKids.UI.Views;
 
 namespace MacroKids.UI.ViewModels;
 
@@ -21,14 +21,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly INodeRegistry _nodeRegistry;
     private FlowExecutor? _activeExecutor;
     private NodeCanvasViewModel? _observedCanvas;
-    private readonly ImageSource? _logoIcon;
 
-    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.2-dev";
+    [ObservableProperty] private string _windowTitle = "MacroKids - v0.1.3-dev";
     [ObservableProperty] private string _statusMessage = "Pronto";
     [ObservableProperty] private string _selectedModule = "Blocks";
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isDarkTheme = true;
     [ObservableProperty] private LanguageOption? _selectedLanguage;
+    [ObservableProperty] private bool _isLanguageMenuOpen;
 
     public ObservableCollection<ProjectPageViewModel> Pages { get; } = [];
     public ObservableCollection<NodeMetadata> AvailableNodes { get; } = [];
@@ -52,8 +52,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
         registry.Register(WaitMetadata.Instance, new WaitExecutor());
 
         _nodeRegistry = registry;
-        _logoIcon = LoadIcon("MacroKids-MiniLogo.png");
-
         Languages.Add(new LanguageOption("Português", "pt-BR", "brazil.png"));
         Languages.Add(new LanguageOption("English", "en", "usa.png"));
         Languages.Add(new LanguageOption("Español", "es", "spain.png"));
@@ -62,7 +60,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         foreach (var nodeMeta in _nodeRegistry.GetAll())
             AvailableNodes.Add(nodeMeta);
 
-        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabMyProject", "My Project"), canClose: false));
+        Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabMyProject", "My Project"), canClose: true));
         Pages.Add(new ProjectPageViewModel(_nodeRegistry, GetText("TabNewAutomation", "New Automation")));
         SelectedPage = Pages[0];
 
@@ -84,11 +82,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void UpdateWindowTitle()
     {
         var pageTitle = SelectedPage?.Title ?? GetText("TabMyProject", "My Project");
-        WindowTitle = $"MacroKids - {pageTitle} - v0.1.2-dev";
+        WindowTitle = $"MacroKids - {pageTitle} - v0.1.3-dev";
     }
 
     public ImageSource ThemeIcon => LoadThemeIcon();
-    public ImageSource? LogoIcon => _logoIcon;
+    public ImageSource? LogoIcon => LoadLogoIcon();
 
     public bool CanPickMoveMouseCoordinates => SelectedNode?.Metadata.TypeId == "mouse.move";
 
@@ -134,6 +132,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
             : "sun.png";
 
         return LoadIcon(fileName) ?? new DrawingImage();
+    }
+
+    private static ImageSource? LoadLogoIcon()
+    {
+        var fileName = (Application.Current?.Resources.MergedDictionaries.Any(d => d.Source?.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase) == true) ?? false)
+            ? "MacroKids-LogoDarkTheme.png"
+            : "MacroKids-LogoLightTheme.png";
+
+        return LoadIcon(fileName) ?? LoadIcon("MacroKids-Logo.png");
     }
 
     private static ImageSource? LoadIcon(string fileName)
@@ -190,10 +197,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void AddPage()
     {
-        var index = Pages.Count(p => p.CanClose) + 1;
-        var title = index == 1
-            ? GetText("TabNewAutomation", "New Automation")
-            : $"{GetText("TabNewAutomation", "New Automation")} {index}";
+        var baseTitle = GetText("TabNewAutomation", "New Automation");
+        var index = Pages.Count(p => p.Title.StartsWith(baseTitle, StringComparison.OrdinalIgnoreCase));
+        var title = index == 0 ? baseTitle : $"{baseTitle} {index + 1}";
 
         var page = new ProjectPageViewModel(_nodeRegistry, title);
         Pages.Add(page);
@@ -204,14 +210,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ClosePage(ProjectPageViewModel? page)
     {
-        if (page is null || !page.CanClose || Pages.Count == 1)
+        if (page is null || !page.CanClose)
             return;
 
         var index = Pages.IndexOf(page);
         Pages.Remove(page);
 
-        if (SelectedPage == page)
+        if (Pages.Count == 0)
+        {
+            var fallback = new ProjectPageViewModel(_nodeRegistry, GetText("TabNewAutomation", "New Automation"));
+            Pages.Add(fallback);
+            SelectedPage = fallback;
+        }
+        else if (SelectedPage == page)
+        {
             SelectedPage = Pages[Math.Max(0, index - 1)];
+        }
 
         StatusMessage = $"{page.Title} fechado.";
     }
@@ -251,7 +265,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         ApplyTheme(!IsDarkTheme);
         OnPropertyChanged(nameof(ThemeIcon));
+        OnPropertyChanged(nameof(LogoIcon));
         StatusMessage = IsDarkTheme ? "Tema escuro ativado." : "Tema claro ativado.";
+    }
+
+    [RelayCommand]
+    private void ToggleLanguageMenu()
+    {
+        IsLanguageMenuOpen = !IsLanguageMenuOpen;
+    }
+
+    [RelayCommand]
+    private void SelectLanguage(LanguageOption? language)
+    {
+        if (language is null)
+            return;
+
+        SelectedLanguage = language;
+        ChangeLanguage(language.Code);
+        IsLanguageMenuOpen = false;
     }
 
     private void ApplyTheme(bool isDarkTheme)
@@ -277,6 +309,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         });
 
         IsDarkTheme = isDarkTheme;
+        OnPropertyChanged(nameof(ThemeIcon));
+        OnPropertyChanged(nameof(LogoIcon));
     }
 
     [RelayCommand]
@@ -290,6 +324,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(GroupedNodes));
         UpdateWindowTitle();
         StatusMessage = $"Idioma alterado: {cultureCode}";
+        IsLanguageMenuOpen = false;
     }
 
     [RelayCommand]
@@ -298,9 +333,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         if (!CanPickMoveMouseCoordinates || SelectedNode is null)
             return;
 
-        if (!TryGetCursorPosition(out var point))
+        var picker = new CoordinatePickerWindow();
+        if (picker.ShowDialog() != true)
             return;
 
+        var point = picker.SelectedPoint;
         SelectedNode["x"] = (int)point.X;
         SelectedNode["y"] = (int)point.Y;
         StatusMessage = $"Coordenadas capturadas: {point.X:0}, {point.Y:0}";
@@ -408,26 +445,4 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private static bool TryGetCursorPosition(out System.Windows.Point point)
-    {
-        var p = new POINT();
-        if (GetCursorPos(ref p))
-        {
-            point = new System.Windows.Point(p.X, p.Y);
-            return true;
-        }
-
-        point = default;
-        return false;
-    }
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(ref POINT lpPoint);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT
-    {
-        public int X;
-        public int Y;
-    }
 }

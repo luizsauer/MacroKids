@@ -1,13 +1,7 @@
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using MacroKids.UI.ViewModels;
 
 namespace MacroKids.UI;
 
@@ -19,7 +13,17 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SetWindowIcon();
         DataContext = new ViewModels.MainWindowViewModel();
+    }
+
+    private void SetWindowIcon()
+    {
+        var iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "favicon.ico");
+        if (!System.IO.File.Exists(iconPath))
+            return;
+
+        Icon = BitmapFrame.Create(new Uri(iconPath, UriKind.Absolute));
     }
 
     private void SearchCanvas_Click(object sender, RoutedEventArgs e)
@@ -55,31 +59,15 @@ public partial class MainWindow : Window
         EditorView.IsEnabled = !EditorView.IsEnabled;
     }
 
-    private void LanguageButton_Click(object sender, RoutedEventArgs e)
+    private void LanguageOption_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not FrameworkElement element || DataContext is not ViewModels.MainWindowViewModel vm)
+        if (sender is not FrameworkElement element || element.DataContext is not LanguageOption language)
             return;
 
-        var menu = new ContextMenu();
-        foreach (var language in vm.Languages)
+        if (DataContext is MainWindowViewModel vm)
         {
-            var item = new MenuItem
-            {
-                Header = new Image
-                {
-                    Source = language.Icon,
-                    Width = 24,
-                    Height = 24
-                },
-                ToolTip = language.Name
-            };
-
-            item.Click += (_, _) => vm.ChangeLanguageCommand.Execute(language.Code);
-            menu.Items.Add(item);
+            vm.SelectLanguageCommand.Execute(language);
         }
-
-        menu.PlacementTarget = element;
-        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.IsOpen = true;
     }
+
 }

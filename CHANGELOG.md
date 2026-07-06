@@ -7,6 +7,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.1.3-dev] - 2026-07-05
+
+### Changed
+- Reworked build output to `bin\Debug\net10.0\0.1.3-dev\`
+- Switched the app logo to the new light/dark theme assets
+- Removed the visible square background from the theme toggle
+
 ## [0.1.2-dev] - 2026-07-05
 
 ### Added

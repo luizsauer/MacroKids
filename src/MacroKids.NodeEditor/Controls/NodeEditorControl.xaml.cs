@@ -50,6 +50,18 @@ public partial class NodeEditorControl : UserControl
         e.Handled = true;
     }
 
+    private void Connection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2 || sender is not FrameworkElement element || element.DataContext is not ConnectionViewModel connectionVm)
+            return;
+
+        if (DataContext is NodeCanvasViewModel canvasVm)
+        {
+            canvasVm.DisconnectConnection(connectionVm.ConnectionId);
+            e.Handled = true;
+        }
+    }
+
     private void Node_MouseMove(object sender, MouseEventArgs e)
     {
         if (_isDraggingNode && _draggedNode != null && sender is Border border && border.IsMouseCaptured)
@@ -135,6 +147,9 @@ public partial class NodeEditorControl : UserControl
         while (source != null)
         {
             if (source is TextBoxBase or ComboBox or ButtonBase)
+                return true;
+
+            if (source is FrameworkElement fe && fe.DataContext is NodePinViewModel)
                 return true;
 
             source = VisualTreeHelper.GetParent(source);

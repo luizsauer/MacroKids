@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup Label="Output Paths Config">
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin\</BaseOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <_MacroKidsTargetFramework>$([System.String]::Copy('$(TargetFramework)').Replace('-windows', ''))</_MacroKidsTargetFramework>
+    <OutputPath>$(BaseOutputPath)$(Configuration)\$(_MacroKidsTargetFramework)\$(Version)\</OutputPath>
+  </PropertyGroup>
+</Project>

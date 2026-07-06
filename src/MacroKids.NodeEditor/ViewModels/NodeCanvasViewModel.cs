@@ -29,7 +29,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             Description = string.Empty,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            EngineVersion = "0.1.2-dev"
+            EngineVersion = "0.1.3-dev"
         };
 
         _history.HistoryChanged += (_, _) =>
@@ -150,6 +150,17 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         };
 
         _history.Execute(new ConnectPinsCommand(_document, connection));
+        TouchDocument();
+        RebuildFromDocument();
+    }
+
+    public void DisconnectConnection(Guid connectionId)
+    {
+        var connection = _document.Connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+            return;
+
+        _history.Execute(new DisconnectPinsCommand(_document, connection));
         TouchDocument();
         RebuildFromDocument();
     }

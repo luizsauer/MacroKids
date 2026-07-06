@@ -30,10 +30,11 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
             <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
-                                  Stroke="{Binding StrokeBrush}" StrokeThickness="3">
-              <local:ConnectionLine.Style>
-                <Style TargetType="local:ConnectionLine">
-                  <Style.Triggers>
+                              Stroke="{Binding StrokeBrush}" StrokeThickness="3"
+                              MouseLeftButtonDown="Connection_MouseLeftButtonDown">
+          <local:ConnectionLine.Style>
+            <Style TargetType="local:ConnectionLine">
+              <Style.Triggers>
                     <DataTrigger Binding="{Binding IsAnimating}" Value="True">
                       <Setter Property="Stroke" Value="#EAB308" />
                     </DataTrigger>
