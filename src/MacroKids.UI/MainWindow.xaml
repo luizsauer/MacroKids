@@ -28,7 +28,7 @@
     </Grid.RowDefinitions>
 
     <!-- Header Panel -->
-    <Border Grid.Row="0" Background="#252538" BorderBrush="#2D2D44" BorderThickness="0,0,0,1" Padding="15,0">
+    <Border Grid.Row="0" Background="#181824" BorderBrush="#2D2D44" BorderThickness="0,0,0,1" Padding="15,0">
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto"/>
@@ -36,18 +36,20 @@
           <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Logo Placeholder / Label -->
+        <!-- Logo Label -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <Image Source="pack://siteoforigin:,,,/Assets/MacroKids-MiniLogo.png" Width="32" Height="32" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-          <TextBlock Text="MacroKids" FontWeight="ExtraBold" FontSize="20" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+          <Border CornerRadius="6" Background="#3B82F6" Width="28" Height="28" Margin="0,0,10,0" VerticalAlignment="Center">
+            <TextBlock Text="M" FontWeight="ExtraBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
+          </Border>
+          <TextBlock Text="MacroKids" FontWeight="ExtraBold" FontSize="20" Foreground="#FFFFFF" VerticalAlignment="Center" FontFamily="Nunito"/>
         </StackPanel>
 
         <!-- Quick Controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Desfazer (Undo)" Command="{Binding CanvasViewModel.UndoCommand}" Margin="5,0" Padding="8,4" Background="#2D2D44" Foreground="White" BorderThickness="0"/>
-          <Button Content="Refazer (Redo)" Command="{Binding CanvasViewModel.RedoCommand}" Margin="5,0" Padding="8,4" Background="#2D2D44" Foreground="White" BorderThickness="0"/>
+          <Button Content="Desfazer" Command="{Binding CanvasViewModel.UndoCommand}" Margin="5,0" Padding="12,6" Background="#2A2A3E" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="12" FontWeight="SemiBold"/>
+          <Button Content="Refazer" Command="{Binding CanvasViewModel.RedoCommand}" Margin="5,0" Padding="12,6" Background="#2A2A3E" Foreground="White" BorderBrush="#3B82F6" BorderThickness="1" FontSize="12" FontWeight="SemiBold"/>
           <Border Width="1" Background="#2D2D44" Margin="10,0"/>
-          <Button Content="Executar (Run)" Background="#22C55E" Foreground="White" FontWeight="Bold" Padding="15,6" BorderThickness="0"/>
+          <Button Content="▶ Executar" Background="#22C55E" Foreground="White" FontWeight="Bold" Padding="15,8" BorderThickness="0" FontSize="12"/>
         </StackPanel>
       </Grid>
     </Border>

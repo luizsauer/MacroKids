@@ -38,10 +38,9 @@
     <NoWarn>$(NoWarn);CA1515;CA1852</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup Label="Output">
-    <Deterministic>true</Deterministic>
-    <!-- Pasta de saída consistente para todos os projetos -->
-    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+  <PropertyGroup Label="Output Paths Config">
+    <!-- Organizes output files into folders named after the version -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin\$(Version)\</BaseOutputPath>
   </PropertyGroup>
 
 </Project>
