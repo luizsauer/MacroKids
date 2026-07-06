@@ -477,12 +477,47 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
             optimized.Add(new RecordedAction(ActionType.KeyPress, 0, 0, accumulatedDelay, textBuffer));
         }
 
+        // 1.2. Otimizar: Agrupar teclas seguradas concorrentes (ex: W e D seguradas quase ao mesmo tempo)
+        var finalOptimized = new List<RecordedAction>();
+        for (int i = 0; i < optimized.Count; i++)
+        {
+            var act = optimized[i];
+            
+            // Se for segurar tecla (Y >= 300ms)
+            if (act.Type == ActionType.KeyPress && act.Y >= 300)
+            {
+                // Verifica se o próximo evento também é um segurar tecla que começa logo em seguida (DelayMs pequeno, ex: < 250ms)
+                if (i + 1 < optimized.Count)
+                {
+                    var next = optimized[i + 1];
+                    if (next.Type == ActionType.KeyPress && next.Y >= 300 && next.DelayMs <= 250)
+                    {
+                        // Mescla as duas teclas!
+                        string mergedKeys = act.KeyName + "+" + next.KeyName;
+                        int avgDuration = (act.Y + next.Y) / 2;
+                        
+                        // Cria uma ação mesclada. Mantemos o delay da primeira
+                        var mergedAct = new RecordedAction(ActionType.KeyPress, 0, avgDuration, act.DelayMs, mergedKeys);
+                        optimized[i] = mergedAct;
+                        
+                        // Remove o próximo evento para não duplicar
+                        optimized.RemoveAt(i + 1);
+                        
+                        // Permite tentar mesclar mais uma tecla se houver outra em seguida (ex: W + D + Shift)
+                        i--; // Reavalia a ação atual mesclada
+                        continue;
+                    }
+                }
+            }
+            finalOptimized.Add(act);
+        }
+
         // 2. Generate Graph
         double currentX = 100;
         double currentY = 150;
         Guid? previousDoneNodeId = null;
 
-        foreach (var action in optimized)
+        foreach (var action in finalOptimized)
         {
             // Only create wait blocks for delays >= 800ms
             if (action.DelayMs >= 800)

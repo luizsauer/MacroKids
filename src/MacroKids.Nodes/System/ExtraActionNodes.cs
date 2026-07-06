@@ -193,55 +193,73 @@ public class HoldKeyExecutor : INodeExecutor
         else if (inputs.TryGetValue("times", out var tValObj) && tValObj != null)
             times = Convert.ToInt32(tValObj);
 
-        ctx.Log($"Segurando tecla {key} por {ms}ms ({times} vez/vezes)...");
+        ctx.Log($"Segurando tecla(s) {key} por {ms}ms ({times} vez/vezes)...");
 
-        byte virtualKey = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(key);
-        if (virtualKey != 0)
+        var keyParts = key.Split(new[] { '+', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        var scanCodes = new List<ushort>();
+
+        foreach (var kp in keyParts)
         {
-            ushort scanCode = (ushort)MapVirtualKey(virtualKey, 0);
+            byte vk = MacroKids.Core.Services.KeyboardMapper.GetVirtualKeyCode(kp);
+            if (vk != 0)
+            {
+                ushort sc = (ushort)MapVirtualKey(vk, 0);
+                scanCodes.Add(sc);
+            }
+        }
 
+        if (scanCodes.Count > 0)
+        {
             for (int i = 0; i < times; i++)
             {
                 if (i > 0)
                     await Task.Delay(100);
 
-                // Send Down Event
-                var inputDown = new INPUT
+                // Envia Down para todas simultaneamente
+                var inputsDown = new INPUT[scanCodes.Count];
+                for (int s = 0; s < scanCodes.Count; s++)
                 {
-                    type = INPUT_KEYBOARD,
-                    u = new InputUnion
+                    inputsDown[s] = new INPUT
                     {
-                        ki = new KEYBDINPUT
+                        type = INPUT_KEYBOARD,
+                        u = new InputUnion
                         {
-                            wVk = 0,
-                            wScan = scanCode,
-                            dwFlags = KEYEVENTF_SCANCODE,
-                            time = 0,
-                            dwExtraInfo = IntPtr.Zero
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = 0,
+                                wScan = scanCodes[s],
+                                dwFlags = KEYEVENTF_SCANCODE,
+                                time = 0,
+                                dwExtraInfo = IntPtr.Zero
+                            }
                         }
-                    }
-                };
-                SendInput(1, new[] { inputDown }, Marshal.SizeOf(typeof(INPUT)));
+                    };
+                }
+                SendInput((uint)inputsDown.Length, inputsDown, Marshal.SizeOf(typeof(INPUT)));
 
                 await Task.Delay(ms);
 
-                // Send Up Event
-                var inputUp = new INPUT
+                // Envia Up para todas em ordem reversa
+                var inputsUp = new INPUT[scanCodes.Count];
+                for (int s = 0; s < scanCodes.Count; s++)
                 {
-                    type = INPUT_KEYBOARD,
-                    u = new InputUnion
+                    inputsUp[s] = new INPUT
                     {
-                        ki = new KEYBDINPUT
+                        type = INPUT_KEYBOARD,
+                        u = new InputUnion
                         {
-                            wVk = 0,
-                            wScan = scanCode,
-                            dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
-                            time = 0,
-                            dwExtraInfo = IntPtr.Zero
+                            ki = new KEYBDINPUT
+                            {
+                                wVk = 0,
+                                wScan = scanCodes[scanCodes.Count - 1 - s],
+                                dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                                time = 0,
+                                dwExtraInfo = IntPtr.Zero
+                            }
                         }
-                    }
-                };
-                SendInput(1, new[] { inputUp }, Marshal.SizeOf(typeof(INPUT)));
+                    };
+                }
+                SendInput((uint)inputsUp.Length, inputsUp, Marshal.SizeOf(typeof(INPUT)));
             }
         }
 
