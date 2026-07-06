@@ -1,3 +1,4 @@
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MacroKids.Core.Models;
 
@@ -54,4 +55,27 @@ public sealed partial class NodeViewModel : ObservableObject
         IsDisabled = IsDisabled,
         Comment    = Comment
     };
+
+    public Point GetInputPinPoint(string pinId)
+    {
+        // Estimate vertical position of the input pin based on its index using LINQ conversion
+        int index = Metadata.Inputs.ToList().FindIndex(p => p.Id == pinId);
+        if (index < 0) index = 0;
+
+        // Offset based on template header (approx 36px) + margin spaces (approx 26px each)
+        double posY = Y + 48 + (index * 26);
+        return new Point(X + 5, posY);
+    }
+
+    public Point GetOutputPinPoint(string pinId)
+    {
+        // Estimate vertical position of the output pin based on its index using LINQ conversion
+        int index = Metadata.Outputs.ToList().FindIndex(p => p.Id == pinId);
+        if (index < 0) index = 0;
+
+        // Visual header + input area offset + output index spacing
+        double inputOffset = Metadata.Inputs.Count() * 26;
+        double posY = Y + 48 + inputOffset + (index * 26);
+        return new Point(X + 185, posY);
+    }
 }

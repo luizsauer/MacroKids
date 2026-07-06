@@ -141,6 +141,10 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
                 c.TargetPinId  == targetPinId))
             return;
 
+        var sourceVm = Nodes.FirstOrDefault(n => n.InstanceId == sourceNodeId);
+        var targetVm = Nodes.FirstOrDefault(n => n.InstanceId == targetNodeId);
+        if (sourceVm == null || targetVm == null) return;
+
         var connection = new FlowConnection
         {
             Id           = Guid.NewGuid(),
@@ -154,7 +158,7 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         var cmd      = new ConnectPinsCommand(document, connection);
         _history.Execute(cmd);
 
-        Connections.Add(new ConnectionViewModel(connection));
+        Connections.Add(new ConnectionViewModel(connection, sourceVm, targetVm));
     }
 
     // ── Viewport helpers ─────────────────────────────────────────────────────
@@ -223,7 +227,12 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         }
 
         foreach (var conn in document.Connections)
-            Connections.Add(new ConnectionViewModel(conn));
+        {
+            var sourceVm = Nodes.FirstOrDefault(n => n.InstanceId == conn.SourceNodeId);
+            var targetVm = Nodes.FirstOrDefault(n => n.InstanceId == conn.TargetNodeId);
+            if (sourceVm != null && targetVm != null)
+                Connections.Add(new ConnectionViewModel(conn, sourceVm, targetVm));
+        }
 
         OffsetX = document.CanvasOffsetX;
         OffsetY = document.CanvasOffsetY;

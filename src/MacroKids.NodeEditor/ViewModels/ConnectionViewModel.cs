@@ -1,3 +1,4 @@
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MacroKids.Core.Models;
 
@@ -18,13 +19,25 @@ public sealed partial class ConnectionViewModel : ObservableObject
 
     [ObservableProperty] private bool _isAnimating; // true while flow is executing through this wire
 
-    public ConnectionViewModel(FlowConnection connection)
+    private readonly NodeViewModel _sourceNode;
+    private readonly NodeViewModel _targetNode;
+
+    public Point StartPoint => _sourceNode.GetOutputPinPoint(SourcePinId);
+    public Point EndPoint => _targetNode.GetInputPinPoint(TargetPinId);
+
+    public ConnectionViewModel(FlowConnection connection, NodeViewModel sourceNode, NodeViewModel targetNode)
     {
         ConnectionId = connection.Id;
         SourceNodeId = connection.SourceNodeId;
         SourcePinId  = connection.SourcePinId;
         TargetNodeId = connection.TargetNodeId;
         TargetPinId  = connection.TargetPinId;
+        _sourceNode  = sourceNode;
+        _targetNode  = targetNode;
+
+        // Listen to node movements to re-calculate Bezier endpoints dynamically
+        _sourceNode.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(NodeViewModel.X) || e.PropertyName == nameof(NodeViewModel.Y)) OnPropertyChanged(nameof(StartPoint)); };
+        _targetNode.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(NodeViewModel.X) || e.PropertyName == nameof(NodeViewModel.Y)) OnPropertyChanged(nameof(EndPoint)); };
     }
 
     public FlowConnection ToFlowConnection() => new()

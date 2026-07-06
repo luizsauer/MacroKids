@@ -18,6 +18,32 @@
                       Zoom="{Binding Zoom}"
                       OffsetX="{Binding OffsetX}"
                       OffsetY="{Binding OffsetY}">
+                      
+      <!-- Connections (Rendered Behind Nodes) -->
+      <ItemsControl ItemsSource="{Binding Connections}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <Canvas />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
+            <local:ConnectionLine StartPoint="{Binding StartPoint}" EndPoint="{Binding EndPoint}" 
+                                  Stroke="#8B5CF6" StrokeThickness="3">
+              <local:ConnectionLine.Style>
+                <Style TargetType="local:ConnectionLine">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAnimating}" Value="True">
+                      <Setter Property="Stroke" Value="#EAB308" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </local:ConnectionLine.Style>
+            </local:ConnectionLine>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
       <ItemsControl ItemsSource="{Binding Nodes}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
