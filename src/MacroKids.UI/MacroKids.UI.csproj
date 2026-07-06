@@ -21,6 +21,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>..\..\Assets\favicon.ico</ApplicationIcon>
+    <OutDir>$(MSBuildThisFileDirectory)..\..\bin\$(Configuration)\$([System.String]::Copy('$(TargetFramework)').Replace('-windows', ''))\$(Version)\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
