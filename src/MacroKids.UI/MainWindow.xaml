@@ -332,6 +332,52 @@
                         </StackPanel>
                     </Button>
 
+                    <!-- Botão Pausar -->
+                    <Button Command="{Binding PauseFlowCommand}" Background="#D97706" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFlowPaused}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⏸ " />
+                            <TextBlock Text="Pausar" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Botão Continuar -->
+                    <Button Command="{Binding ResumeFlowCommand}" Background="#15803D" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFlowPaused}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="▶ " />
+                            <TextBlock Text="Continuar" />
+                        </StackPanel>
+                    </Button>
+
                     <Button Command="{Binding RecordMacroCommand}" Background="#DC2626" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="6,0,2,0" Height="28" ToolTip="Grava cliques, posição do mouse e teclas digitadas em segundo plano">
                         <Button.Resources>
                             <Style TargetType="Border">
@@ -341,6 +387,18 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🔴 " />
                             <TextBlock Text="Gravar Macro" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ContinueRecordMacroCommand}" Background="#B91C1C" Foreground="White" Padding="12,4" BorderThickness="0" FontSize="11" Margin="2,0" Height="28" ToolTip="Continua a gravação de macro atual sem limpar os blocos existentes">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="➕ " />
+                            <TextBlock Text="Continuar Gravação" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

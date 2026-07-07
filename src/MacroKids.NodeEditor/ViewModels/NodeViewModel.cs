@@ -26,6 +26,7 @@ public sealed partial class NodeViewModel : ObservableObject
     [ObservableProperty] private bool _hasError;      // glows red after NodeErrorEvent
     [ObservableProperty] private bool _isDisabled;
     [ObservableProperty] private string? _comment;
+    [ObservableProperty] private string _statusText = string.Empty;
 
     /// <summary>
     /// Static pin values (editable inline on the node).

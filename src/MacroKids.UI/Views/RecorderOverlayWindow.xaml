@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MacroKids Recorder" 
         Height="55" 
-        Width="220" 
+        Width="300" 
         WindowStyle="None" 
         AllowsTransparency="True" 
         Background="Transparent"
@@ -17,10 +17,11 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
+ 
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <Ellipse Width="10" Height="10" Fill="#EF4444" Margin="0,0,8,0">
+                <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#EF4444" Margin="0,0,8,0">
                     <Ellipse.Style>
                         <Style TargetType="Ellipse">
                             <Style.Triggers>
@@ -35,11 +36,51 @@
                         </Style>
                     </Ellipse.Style>
                 </Ellipse>
-                <TextBlock Text="Gravando..." Foreground="White" FontSize="12" FontFamily="Nunito" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock x:Name="StatusText" Text="Gravando..." Foreground="White" FontSize="12" FontFamily="Nunito" FontWeight="Bold" VerticalAlignment="Center" />
+            </StackPanel>
+ 
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                <Button x:Name="PauseButton" 
+                        Content="Pausar" 
+                        Click="PauseButton_Click" 
+                        Background="#D97706" 
+                        Foreground="White" 
+                        BorderThickness="0" 
+                        Padding="8,4"
+                        FontSize="10" 
+                        FontWeight="Bold"
+                        FontFamily="Nunito"
+                        Cursor="Hand"
+                        Margin="0,0,4,0">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <Button x:Name="ResumeButton" 
+                        Content="Retomar" 
+                        Click="ResumeButton_Click" 
+                        Background="#15803D" 
+                        Foreground="White" 
+                        BorderThickness="0" 
+                        Padding="8,4"
+                        FontSize="10" 
+                        FontWeight="Bold"
+                        FontFamily="Nunito"
+                        Cursor="Hand"
+                        Visibility="Collapsed">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
             </StackPanel>
 
-            <Button Grid.Column="1" 
-                    Content="Parar Gravação" 
+            <Button Grid.Column="2" 
+                    Content="Parar" 
                     Click="StopButton_Click" 
                     Background="#991B1B" 
                     Foreground="White" 
@@ -48,7 +89,8 @@
                     FontSize="10" 
                     FontWeight="Bold"
                     FontFamily="Nunito"
-                    Cursor="Hand">
+                    Cursor="Hand"
+                    VerticalAlignment="Center">
                 <Button.Resources>
                     <Style TargetType="Border">
                         <Setter Property="CornerRadius" Value="4" />

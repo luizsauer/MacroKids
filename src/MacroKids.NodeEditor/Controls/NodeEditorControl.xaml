@@ -22,7 +22,10 @@
                       Zoom="{Binding Zoom}"
                       OffsetX="{Binding OffsetX}"
                       OffsetY="{Binding OffsetY}"
-                      IsGridVisible="{Binding IsGridVisible}">
+                      IsGridVisible="{Binding IsGridVisible}"
+                      MouseLeftButtonDown="EditorCanvas_MouseLeftButtonDown"
+                      MouseMove="EditorCanvas_MouseMove"
+                      MouseLeftButtonUp="EditorCanvas_MouseLeftButtonUp">
                       
               <!-- Connections (Rendered Behind Nodes) -->
               <ItemsControl ItemsSource="{Binding Connections}">
@@ -85,13 +88,14 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="{x:Type vm:NodeViewModel}">
-            <Border BorderThickness="1.5" CornerRadius="14" Width="215" Height="Auto" Margin="5"
+            <Border CornerRadius="14" Width="215" Height="Auto" Margin="5"
                     PreviewMouseDown="Node_PreviewMouseDown"
                     MouseMove="Node_MouseMove"
                     MouseUp="Node_MouseUp"
                     Cursor="SizeAll">
               <Border.Style>
                 <Style TargetType="Border">
+                  <Setter Property="BorderThickness" Value="1.5" />
                   <Setter Property="BorderBrush" Value="Transparent" />
                   <Setter Property="Background" Value="{Binding Metadata.CategoryColor}" />
                   <Setter Property="Opacity" Value="1" />
@@ -109,10 +113,22 @@
                       <Setter Property="Opacity" Value="0.55" />
                     </DataTrigger>
                     <DataTrigger Binding="{Binding IsExecuting}" Value="True">
-                      <Setter Property="BorderBrush" Value="#EAB308" />
+                      <Setter Property="BorderBrush" Value="#FBBF24" />
+                      <Setter Property="BorderThickness" Value="3" />
+                      <Setter Property="Effect">
+                        <Setter.Value>
+                          <DropShadowEffect BlurRadius="25" ShadowDepth="0" Opacity="0.95" Color="#FBBF24" />
+                        </Setter.Value>
+                      </Setter>
                     </DataTrigger>
                     <DataTrigger Binding="{Binding HasError}" Value="True">
                       <Setter Property="BorderBrush" Value="#EF4444" />
+                      <Setter Property="BorderThickness" Value="3" />
+                      <Setter Property="Effect">
+                        <Setter.Value>
+                          <DropShadowEffect BlurRadius="25" ShadowDepth="0" Opacity="0.95" Color="#EF4444" />
+                        </Setter.Value>
+                      </Setter>
                     </DataTrigger>
                   </Style.Triggers>
                 </Style>
@@ -124,7 +140,7 @@
                   <ColumnDefinition Width="*"/>
                   <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
+ 
                 <!-- Left: Execution input pin (flow "in") -->
                 <ItemsControl Grid.Column="0" ItemsSource="{Binding FlowInputPins}" HorizontalAlignment="Left" VerticalAlignment="Center">
                   <ItemsControl.ItemTemplate>
@@ -135,11 +151,25 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-
+ 
                 <!-- Central Content Area -->
                 <StackPanel Grid.Column="1" Margin="4,2">
                   <!-- Block Title -->
-                  <TextBlock Text="{Binding DisplayName}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,6"/>
+                  <TextBlock Text="{Binding DisplayName}" Foreground="White" FontWeight="Bold" FontFamily="Nunito" FontSize="13" Margin="0,0,0,4"/>
+
+                  <!-- Status/Progresso em Execução -->
+                  <TextBlock Text="{Binding StatusText}" Foreground="#FBBF24" FontSize="10" FontFamily="Nunito" FontWeight="Bold" Margin="0,0,0,6">
+                      <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                              <Style.Triggers>
+                                  <DataTrigger Binding="{Binding IsExecuting}" Value="True">
+                                      <Setter Property="Visibility" Value="Visible" />
+                                  </DataTrigger>
+                              </Style.Triggers>
+                          </Style>
+                      </TextBlock.Style>
+                  </TextBlock>
                   
                   <!-- Data Parameter Inputs (non-flow pins with inline textbox) -->
                   <ItemsControl ItemsSource="{Binding DataInputPins}">
@@ -181,6 +211,19 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+
+      <!-- Retângulo de seleção múltipla -->
+      <Border x:Name="SelectionRectangle"
+              BorderBrush="#3B82F6"
+              BorderThickness="1.5"
+              Background="#2563EB"
+              Opacity="0.2"
+              CornerRadius="2"
+              Visibility="Collapsed"
+              Canvas.Left="0"
+              Canvas.Top="0"
+              Width="0"
+              Height="0" />
     </local:NodeCanvas>
   </Grid>
 </UserControl>

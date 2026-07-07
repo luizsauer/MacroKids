@@ -31,4 +31,22 @@ public partial class RecorderOverlayWindow : Window
         Close();
         _onStop();
     }
+
+    private void PauseButton_Click(object sender, RoutedEventArgs e)
+    {
+        MacroKids.UI.Services.MacroRecorder.Pause();
+        PauseButton.Visibility = Visibility.Collapsed;
+        ResumeButton.Visibility = Visibility.Visible;
+        StatusText.Text = "Pausado...";
+        StatusDot.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(217, 119, 6)); // Laranja
+    }
+
+    private void ResumeButton_Click(object sender, RoutedEventArgs e)
+    {
+        MacroKids.UI.Services.MacroRecorder.Resume();
+        PauseButton.Visibility = Visibility.Visible;
+        ResumeButton.Visibility = Visibility.Collapsed;
+        StatusText.Text = "Gravando...";
+        StatusDot.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68)); // Vermelho
+    }
 }

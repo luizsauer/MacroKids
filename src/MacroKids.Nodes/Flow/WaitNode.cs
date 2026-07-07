@@ -55,7 +55,28 @@ public class WaitExecutor : INodeExecutor
             
             try
             {
-                await Task.Delay(ms, context.CancellationToken);
+                if (ms >= 1000)
+                {
+                    int remaining = ms;
+                    while (remaining > 0)
+                    {
+                        context.CancellationToken.ThrowIfCancellationRequested();
+                        
+                        double secs = Math.Round(remaining / 1000.0, 1);
+                        context.EventBus.Publish(new MacroKids.Core.Events.NodeStatusUpdatedEvent(
+                            Guid.Empty, node.InstanceId, $"Aguardando {secs:0.0}s..."));
+
+                        int chunk = Math.Min(remaining, 200);
+                        await Task.Delay(chunk, context.CancellationToken);
+                        remaining -= chunk;
+                    }
+                }
+                else
+                {
+                    context.EventBus.Publish(new MacroKids.Core.Events.NodeStatusUpdatedEvent(
+                        Guid.Empty, node.InstanceId, $"Aguardando {ms}ms..."));
+                    await Task.Delay(ms, context.CancellationToken);
+                }
             }
             catch (OperationCanceledException)
             {

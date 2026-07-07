@@ -36,6 +36,9 @@ public record NodeSkippedEvent(Guid FlowId, Guid NodeInstanceId, string TypeId, 
 public record NodeErrorEvent(Guid FlowId, Guid NodeInstanceId, string TypeId, Exception Error)
     : IExecutionEvent;
 
+public record NodeStatusUpdatedEvent(Guid FlowId, Guid NodeInstanceId, string StatusText)
+    : IExecutionEvent;
+
 // ── Variable events ───────────────────────────────────────────────────────────
 
 public record VariableChangedEvent(string Name, object? OldValue, object? NewValue)

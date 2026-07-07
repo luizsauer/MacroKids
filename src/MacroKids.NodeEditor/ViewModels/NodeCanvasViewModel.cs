@@ -64,19 +64,78 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
     // ── Selection ─────────────────────────────────────────────────────────────
 
     [ObservableProperty] private NodeViewModel? _selectedNode;
+    public ObservableCollection<NodeViewModel> SelectedNodes { get; } = [];
 
-    public void SelectNode(NodeViewModel? node)
+    public void SelectNode(NodeViewModel? node, bool toggle = false, bool selectMultiple = false)
     {
-        if (SelectedNode is not null)
-            SelectedNode.IsSelected = false;
+        if (node == null)
+        {
+            ClearSelection();
+            return;
+        }
 
-        SelectedNode = node;
-
-        if (node is not null)
+        if (selectMultiple)
+        {
+            if (toggle)
+            {
+                if (node.IsSelected)
+                {
+                    node.IsSelected = false;
+                    SelectedNodes.Remove(node);
+                    if (SelectedNode == node)
+                    {
+                        SelectedNode = SelectedNodes.Count > 0 ? SelectedNodes[SelectedNodes.Count - 1] : null;
+                    }
+                }
+                else
+                {
+                    node.IsSelected = true;
+                    SelectedNodes.Add(node);
+                    SelectedNode = node;
+                }
+            }
+            else
+            {
+                if (!node.IsSelected)
+                {
+                    node.IsSelected = true;
+                    SelectedNodes.Add(node);
+                }
+                SelectedNode = node;
+            }
+        }
+        else
+        {
+            // Seleção simples: desmarca todos os outros
+            foreach (var n in Nodes)
+            {
+                if (n != node)
+                {
+                    n.IsSelected = false;
+                }
+            }
+            SelectedNodes.Clear();
             node.IsSelected = true;
+            SelectedNodes.Add(node);
+            SelectedNode = node;
+        }
+
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        DuplicateSelectedCommand.NotifyCanExecuteChanged();
     }
 
-    public void ClearSelection() => SelectNode(null);
+    public void ClearSelection()
+    {
+        foreach (var n in Nodes)
+        {
+            n.IsSelected = false;
+        }
+        SelectedNodes.Clear();
+        SelectedNode = null;
+
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        DuplicateSelectedCommand.NotifyCanExecuteChanged();
+    }
 
     partial void OnZoomChanged(double value) => OnPropertyChanged(nameof(ZoomLabel));
 
@@ -151,64 +210,142 @@ public sealed partial class NodeCanvasViewModel : ObservableObject
         RebuildFromDocument(flowNode.InstanceId, preserveViewport: true);
     }
 
-    /// <summary>Delete currently selected node.</summary>
+    /// <summary>Delete currently selected nodes.</summary>
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DeleteSelected()
     {
-        if (SelectedNode is null)
+        // Garante que o nó único selecionado está na lista se ela estiver vazia
+        if (SelectedNodes.Count == 0 && SelectedNode is not null)
+        {
+            SelectedNodes.Add(SelectedNode);
+        }
+
+        if (SelectedNodes.Count == 0)
             return;
 
-        var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == SelectedNode.InstanceId);
-        if (flowNode is null)
+        var flowNodes = _document.Nodes.Where(n => SelectedNodes.Any(s => s.InstanceId == n.InstanceId)).ToList();
+        if (flowNodes.Count == 0)
             return;
 
         SyncVmPinValuesToDocument();
-        _history.Execute(new DeleteNodeCommand(_document, [flowNode]));
+        _history.Execute(new DeleteNodeCommand(_document, flowNodes));
         TouchDocument();
         ClearSelection();
         RebuildFromDocument(preserveViewport: true);
     }
 
-    /// <summary>Duplicate currently selected node.</summary>
+    /// <summary>Duplicate currently selected nodes.</summary>
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void DuplicateSelected()
     {
-        if (SelectedNode is null)
+        if (SelectedNodes.Count == 0 && SelectedNode is not null)
+        {
+            SelectedNodes.Add(SelectedNode);
+        }
+
+        if (SelectedNodes.Count == 0)
             return;
 
-        var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == SelectedNode.InstanceId);
-        if (flowNode is null)
+        var flowNodes = _document.Nodes.Where(n => SelectedNodes.Any(s => s.InstanceId == n.InstanceId)).ToList();
+        if (flowNodes.Count == 0)
             return;
 
         SyncVmPinValuesToDocument();
 
-        // Create a copy with offset
-        var duplicateNode = CloneNode(flowNode, Guid.NewGuid());
-        duplicateNode.X += 30;
-        duplicateNode.Y += 30;
+        var duplicateNodes = new List<FlowNode>();
+        var idMapping = new Dictionary<Guid, Guid>();
 
-        _history.Execute(new CreateNodeCommand(_document, duplicateNode));
+        foreach (var flowNode in flowNodes)
+        {
+            var newId = Guid.NewGuid();
+            idMapping[flowNode.InstanceId] = newId;
+
+            var dup = CloneNode(flowNode, newId);
+            dup.X += 40;
+            dup.Y += 40;
+            duplicateNodes.Add(dup);
+        }
+
+        // Executa criação dos duplicados
+        foreach (var dup in duplicateNodes)
+        {
+            _history.Execute(new CreateNodeCommand(_document, dup));
+        }
+
+        // Duplica também as conexões internas que ligam os nós selecionados entre si
+        var connsToDuplicate = _document.Connections
+            .Where(c => idMapping.ContainsKey(c.SourceNodeId) && idMapping.ContainsKey(c.TargetNodeId))
+            .ToList();
+
+        foreach (var conn in connsToDuplicate)
+        {
+            var newConn = new FlowConnection
+            {
+                Id = Guid.NewGuid(),
+                SourceNodeId = idMapping[conn.SourceNodeId],
+                SourcePinId = conn.SourcePinId,
+                TargetNodeId = idMapping[conn.TargetNodeId],
+                TargetPinId = conn.TargetPinId
+            };
+            _history.Execute(new ConnectPinsCommand(_document, newConn));
+        }
+
         TouchDocument();
-        RebuildFromDocument(duplicateNode.InstanceId, preserveViewport: true);
+        
+        // Seleciona os novos nós duplicados
+        ClearSelection();
+        RebuildFromDocument(preserveViewport: true);
+
+        foreach (var dup in duplicateNodes)
+        {
+            var vm = Nodes.FirstOrDefault(n => n.InstanceId == dup.InstanceId);
+            if (vm != null)
+            {
+                vm.IsSelected = true;
+                SelectedNodes.Add(vm);
+            }
+        }
+        if (SelectedNodes.Count > 0)
+        {
+            SelectedNode = SelectedNodes[SelectedNodes.Count - 1];
+        }
     }
 
-    private bool HasSelection => SelectedNode is not null;
+    private bool HasSelection => SelectedNode is not null || SelectedNodes.Count > 0;
 
     // ── Move ─────────────────────────────────────────────────────────────────
 
     public void MoveNode(NodeViewModel vm, double newX, double newY)
     {
-        var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == vm.InstanceId);
-        if (flowNode is null)
-            return;
+        if (SelectedNodes.Count > 1 && vm.IsSelected)
+        {
+            var moves = new List<(FlowNode Node, double NewX, double NewY)>();
+            foreach (var sel in SelectedNodes)
+            {
+                var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == sel.InstanceId);
+                if (flowNode is not null)
+                {
+                    flowNode.PinValues = new Dictionary<string, object?>(sel.PinValues);
+                    moves.Add((flowNode, sel.X, sel.Y));
+                }
+            }
+            if (moves.Count > 0)
+            {
+                _history.Execute(new MoveNodeCommand(_document, moves));
+                TouchDocument();
+            }
+        }
+        else
+        {
+            var flowNode = _document.Nodes.FirstOrDefault(n => n.InstanceId == vm.InstanceId);
+            if (flowNode is null)
+                return;
 
-        // Persist current pin values so they survive any future undo/redo rebuild
-        flowNode.PinValues = new Dictionary<string, object?>(vm.PinValues);
+            flowNode.PinValues = new Dictionary<string, object?>(vm.PinValues);
 
-        _history.Execute(new MoveNodeCommand(_document, [(flowNode, newX, newY)]));
-        TouchDocument();
-        // No RebuildFromDocument: X/Y already updated live on the VM during drag.
-        // ConnectionViewModels update automatically via PropertyChanged on NodeViewModel.X/Y.
+            _history.Execute(new MoveNodeCommand(_document, [(flowNode, newX, newY)]));
+            TouchDocument();
+        }
     }
 
     // ── Connect pins ──────────────────────────────────────────────────────────

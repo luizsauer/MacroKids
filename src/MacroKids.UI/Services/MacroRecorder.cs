@@ -38,16 +38,35 @@ public static class MacroRecorder
     ];
 
     public static bool IsRecording { get; private set; }
+    public static bool IsPaused { get; private set; }
 
-    public static void Start()
+    public static int ActionCount => _recordedActions.Count;
+
+    public static void Start(bool clearExisting = true)
     {
         if (IsRecording) return;
         IsRecording = true;
-        _recordedActions.Clear();
-        _cts = new CancellationTokenSource();
+        IsPaused = false;
+        
+        if (clearExisting)
+        {
+            _recordedActions.Clear();
+        }
 
+        _cts = new CancellationTokenSource();
+ 
         var token = _cts.Token;
         Task.Run(() => RecordLoopAsync(token), token);
+    }
+
+    public static void Pause()
+    {
+        IsPaused = true;
+    }
+
+    public static void Resume()
+    {
+        IsPaused = false;
     }
 
     public static List<RecordedAction> Stop()
@@ -99,6 +118,13 @@ public static class MacroRecorder
 
         while (!token.IsCancellationRequested)
         {
+            if (IsPaused)
+            {
+                await Task.Delay(100, token);
+                lastActionTime = DateTime.UtcNow; // Evita acumular delay gigante enquanto pausado!
+                continue;
+            }
+
             IntPtr currentActiveWindow = GetForegroundWindow();
             if (currentActiveWindow != IntPtr.Zero)
             {

@@ -287,6 +287,7 @@ public sealed class FlowExecutor
         {
             _cts!.Token.ThrowIfCancellationRequested();
             context.Log($"Loop - Iteração {i + 1} de {times}");
+            _eventBus.Publish(new NodeStatusUpdatedEvent(document.Id, node.InstanceId, $"Iteração {i + 1} / {times}"));
 
             if (loopConn != null)
             {
@@ -347,6 +348,7 @@ public sealed class FlowExecutor
         {
             _cts!.Token.ThrowIfCancellationRequested();
             context.Log($"For Each - Item [{index}]: {item}");
+            _eventBus.Publish(new NodeStatusUpdatedEvent(document.Id, node.InstanceId, $"Item {index + 1}"));
 
             // Put current item value in output cache
             outputCache[(node.InstanceId, "item")] = item;
@@ -428,6 +430,7 @@ public sealed class FlowExecutor
         {
             _cts!.Token.ThrowIfCancellationRequested();
             context.Log($"For Loop - Índice: {index}");
+            _eventBus.Publish(new NodeStatusUpdatedEvent(document.Id, node.InstanceId, $"Índice: {index}"));
 
             outputCache[(node.InstanceId, "index")] = index;
 
@@ -508,7 +511,13 @@ public sealed class FlowExecutor
     }
 
     /// <summary>Stop execution immediately.</summary>
-    public void Stop() => _cts?.Cancel();
+    public void Stop()
+    {
+        if (IsPaused)
+            Resume();
+
+        _cts?.Cancel();
+    }
 
     /// <summary>Pause execution after the current node completes.</summary>
     public void Pause()

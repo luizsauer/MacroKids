@@ -41,7 +41,15 @@ public partial class NodeEditorControl : UserControl
 
         if (DataContext is NodeCanvasViewModel canvasVm)
         {
-            canvasVm.SelectNode(nodeVm);
+            bool isCtrlOrShift = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl) ||
+                                 Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+
+            // Se o nó já estiver selecionado e iniciamos o drag, preserva a seleção múltipla. 
+            // Senão, seleciona normalmente.
+            if (!nodeVm.IsSelected)
+            {
+                canvasVm.SelectNode(nodeVm, toggle: true, selectMultiple: isCtrlOrShift);
+            }
         }
 
         _isDraggingNode = true;
@@ -165,8 +173,19 @@ public partial class NodeEditorControl : UserControl
             Point current = e.GetPosition(EditorCanvas);
             Vector delta = current - _dragStart;
 
-            _draggedNode.X += delta.X;
-            _draggedNode.Y += delta.Y;
+            if (DataContext is NodeCanvasViewModel canvasVm && canvasVm.SelectedNodes.Count > 1 && _draggedNode.IsSelected)
+            {
+                foreach (var n in canvasVm.SelectedNodes)
+                {
+                    n.X += delta.X;
+                    n.Y += delta.Y;
+                }
+            }
+            else
+            {
+                _draggedNode.X += delta.X;
+                _draggedNode.Y += delta.Y;
+            }
 
             _dragStart = current;
             e.Handled = true;
@@ -182,7 +201,17 @@ public partial class NodeEditorControl : UserControl
         {
             if (_draggedNode != null && DataContext is NodeCanvasViewModel canvasVm)
             {
-                canvasVm.MoveNode(_draggedNode, _draggedNode.X, _draggedNode.Y);
+                if (canvasVm.SelectedNodes.Count > 1 && _draggedNode.IsSelected)
+                {
+                    foreach (var n in canvasVm.SelectedNodes)
+                    {
+                        canvasVm.MoveNode(n, n.X, n.Y);
+                    }
+                }
+                else
+                {
+                    canvasVm.MoveNode(_draggedNode, _draggedNode.X, _draggedNode.Y);
+                }
             }
 
             _isDraggingNode = false;
@@ -340,6 +369,101 @@ public partial class NodeEditorControl : UserControl
                 Keyboard.ClearFocus();
             }
         }
+    }
+
+    private Point _selectionStartPoint;
+    private bool _isSelecting;
+
+    private void EditorCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not NodeCanvasViewModel canvasVm)
+            return;
+
+        // Se clicar em um nó ou pino, não desenha o retângulo de seleção
+        if (e.OriginalSource is DependencyObject depObj && (IsOverNodeElement(depObj) || IsOverPinElement(depObj)))
+            return;
+
+        _isSelecting = true;
+        _selectionStartPoint = e.GetPosition(EditorCanvas);
+
+        SelectionRectangle.Width = 0;
+        SelectionRectangle.Height = 0;
+        SelectionRectangle.Visibility = Visibility.Visible;
+        Canvas.SetLeft(SelectionRectangle, _selectionStartPoint.X);
+        Canvas.SetTop(SelectionRectangle, _selectionStartPoint.Y);
+
+        EditorCanvas.CaptureMouse();
+        
+        // Limpa a seleção anterior se Ctrl/Shift não estiverem pressionados
+        if (!Keyboard.IsKeyDown(Key.LeftCtrl) && !Keyboard.IsKeyDown(Key.RightCtrl) &&
+            !Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
+        {
+            canvasVm.ClearSelection();
+        }
+
+        e.Handled = true;
+    }
+
+    private void EditorCanvas_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isSelecting || !EditorCanvas.IsMouseCaptured)
+            return;
+
+        Point currentPoint = e.GetPosition(EditorCanvas);
+
+        double x = Math.Min(_selectionStartPoint.X, currentPoint.X);
+        double y = Math.Min(_selectionStartPoint.Y, currentPoint.Y);
+        double width = Math.Abs(_selectionStartPoint.X - currentPoint.X);
+        double height = Math.Abs(_selectionStartPoint.Y - currentPoint.Y);
+
+        Canvas.SetLeft(SelectionRectangle, x);
+        Canvas.SetTop(SelectionRectangle, y);
+        SelectionRectangle.Width = width;
+        SelectionRectangle.Height = height;
+
+        e.Handled = true;
+    }
+
+    private void EditorCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isSelecting)
+        {
+            _isSelecting = false;
+            SelectionRectangle.Visibility = Visibility.Collapsed;
+            EditorCanvas.ReleaseMouseCapture();
+
+            if (DataContext is NodeCanvasViewModel canvasVm)
+            {
+                double rectLeft = Canvas.GetLeft(SelectionRectangle);
+                double rectTop = Canvas.GetTop(SelectionRectangle);
+                Rect selectionRect = new Rect(rectLeft, rectTop, SelectionRectangle.Width, SelectionRectangle.Height);
+
+                bool selectMultiple = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl) ||
+                                     Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+
+                foreach (var node in canvasVm.Nodes)
+                {
+                    // Usa estimativa de tamanho do nó de 215x150
+                    Rect nodeRect = new Rect(node.X, node.Y, 215, 150);
+                    if (selectionRect.IntersectsWith(nodeRect))
+                    {
+                        canvasVm.SelectNode(node, toggle: false, selectMultiple: true);
+                    }
+                }
+            }
+            e.Handled = true;
+        }
+    }
+
+    private static bool IsOverNodeElement(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is FrameworkElement fe && fe.DataContext is NodeViewModel)
+                return true;
+            source = VisualTreeHelper.GetParent(source);
+        }
+        return false;
     }
 }
 

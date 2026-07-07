@@ -36,6 +36,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private bool _isLanguageMenuOpen;
     [ObservableProperty] private bool _isLogExpanded;
     [ObservableProperty] private bool _isRecordingMacro;
+    [ObservableProperty] private bool _isFlowPaused;
     
     private bool CanRecord => !IsRecordingMacro;
 
@@ -455,17 +456,64 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void StopFlow()
     {
         _activeExecutor?.Stop();
+        IsFlowPaused = false;
         StatusMessage = GetText("StatusExecutionStopped", "Execution stopped.");
     }
+
+    [RelayCommand]
+    private void PauseFlow()
+    {
+        if (_activeExecutor is not null && _activeExecutor.IsRunning && !_activeExecutor.IsPaused)
+        {
+            _activeExecutor.Pause();
+            IsFlowPaused = true;
+            StatusMessage = "Execução pausada.";
+        }
+    }
+
+    [RelayCommand]
+    private void ResumeFlow()
+    {
+        if (_activeExecutor is not null && _activeExecutor.IsRunning && _activeExecutor.IsPaused)
+        {
+            _activeExecutor.Resume();
+            IsFlowPaused = false;
+            StatusMessage = "Execução retomada.";
+        }
+    }
+
+    private int _previouslyRecordedActionCount;
 
     [RelayCommand(CanExecute = nameof(CanRecord))]
     private void RecordMacro()
     {
+        StartRecording(clearExisting: true);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRecord))]
+    private void ContinueRecordMacro()
+    {
+        StartRecording(clearExisting: false);
+    }
+
+    private void StartRecording(bool clearExisting)
+    {
         IsRecordingMacro = true;
         RecordMacroCommand.NotifyCanExecuteChanged();
+        ContinueRecordMacroCommand.NotifyCanExecuteChanged();
 
-        StatusMessage = "Iniciando gravador global de macro...";
-        MacroKids.UI.Services.MacroRecorder.Start();
+        if (clearExisting)
+        {
+            _previouslyRecordedActionCount = 0;
+            StatusMessage = "Iniciando gravador global de macro...";
+        }
+        else
+        {
+            _previouslyRecordedActionCount = MacroKids.UI.Services.MacroRecorder.ActionCount;
+            StatusMessage = "Continuando gravação de macro...";
+        }
+
+        MacroKids.UI.Services.MacroRecorder.Start(clearExisting);
 
         // Minimiza a janela principal
         if (Application.Current.MainWindow != null)
@@ -479,6 +527,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             Application.Current.Dispatcher.Invoke(() =>
             {
                 var actions = MacroKids.UI.Services.MacroRecorder.Stop();
+                var newActions = actions.Skip(_previouslyRecordedActionCount).ToList();
 
                 // Restaura a janela principal
                 if (Application.Current.MainWindow != null)
@@ -487,13 +536,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     Application.Current.MainWindow.Activate();
                 }
 
-                // Importa as acoes gravadas para o canvas da pagina selecionada
-                CanvasViewModel.ImportRecordedActions(actions);
+                // Importa apenas as ações novas gravadas para o canvas da pagina selecionada
+                CanvasViewModel.ImportRecordedActions(newActions);
 
                 IsRecordingMacro = false;
                 RecordMacroCommand.NotifyCanExecuteChanged();
+                ContinueRecordMacroCommand.NotifyCanExecuteChanged();
 
-                StatusMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, "Macro gravada com sucesso! {0} blocos gerados.", actions.Count);
+                StatusMessage = string.Format(System.Globalization.CultureInfo.CurrentCulture, "Macro gravada com sucesso! {0} novos blocos gerados.", newActions.Count);
             });
         });
         overlay.Show();
@@ -573,6 +623,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     {
                         node.IsExecuting = true;
                         node.HasError = false;
+                        node.StatusText = string.Empty;
                     }
                 });
             });
@@ -585,6 +636,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     if (node != null)
                     {
                         node.IsExecuting = false;
+                        node.StatusText = string.Empty;
                     }
                 });
             });
@@ -598,6 +650,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     {
                         node.IsExecuting = false;
                         node.HasError = true;
+                        node.StatusText = string.Empty;
+                    }
+                });
+            });
+
+            eventBus.Subscribe<MacroKids.Core.Events.NodeStatusUpdatedEvent>(e =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var node = CanvasViewModel.Nodes.FirstOrDefault(n => n.InstanceId == e.NodeInstanceId);
+                    if (node != null)
+                    {
+                        node.StatusText = e.StatusText;
                     }
                 });
             });
@@ -630,9 +695,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         finally
         {
             _activeExecutor = null;
+            IsFlowPaused = false;
             foreach (var n in CanvasViewModel.Nodes)
             {
                 n.IsExecuting = false;
+                n.StatusText = string.Empty;
             }
 
             if (mainWindow != null)
